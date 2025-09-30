@@ -195,25 +195,69 @@
     </div>
 
     <script>
-        const ws = new WebSocket('ws://localhost:8000/ws/chat/'); // Adjust URL for Django Channels or backend
+        let ws;
+        let reconnectInterval;
+        const maxReconnectAttempts = 5;
+        let reconnectAttempts = 0;
+        const userId = 1; // In a real app, get this from authentication
 
-        ws.onopen = function(event) {
-            console.log('WebSocket connected');
-        };
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws/chat/');
 
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'new_thread') {
-                addThread(data.thread);
-            } else if (data.type === 'new_reply') {
-                addReply(data.reply);
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                reconnectAttempts = 0;
+                clearInterval(reconnectInterval);
+                setStatus('Connected');
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_thread') {
+                    addThread(data.thread);
+                } else if (data.type === 'new_reply') {
+                    addReply(data.reply);
+                }
+                updateRecentPosts();
+            };
+
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                setStatus('Disconnected. Reconnecting...');
+                attemptReconnect();
+            };
+
+            ws.onerror = function(event) {
+                console.error('WebSocket error:', event);
+                ws.close();
+            };
+        }
+
+        function attemptReconnect() {
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                reconnectInterval = setTimeout(() => {
+                    console.log('Reconnecting WebSocket...');
+                    connectWebSocket();
+                }, 2000 * reconnectAttempts);
+            } else {
+                setStatus('Unable to connect to server.');
             }
-            updateRecentPosts();
-        };
+        }
 
-        ws.onclose = function(event) {
-            console.log('WebSocket disconnected');
-        };
+        function setStatus(message) {
+            let statusDiv = document.getElementById('ws-status');
+            if (!statusDiv) {
+                statusDiv = document.createElement('div');
+                statusDiv.id = 'ws-status';
+                statusDiv.style.padding = '10px';
+                statusDiv.style.backgroundColor = '#f8d7da';
+                statusDiv.style.color = '#721c24';
+                statusDiv.style.textAlign = 'center';
+                document.body.insertBefore(statusDiv, document.body.firstChild);
+            }
+            statusDiv.textContent = message;
+        }
 
         function createThread() {
             const title = document.getElementById('thread-title').value;
@@ -222,17 +266,24 @@
                 ws.send(JSON.stringify({
                     type: 'new_thread',
                     title: title,
-                    content: content
+                    content: content,
+                    user_id: userId
                 }));
                 document.getElementById('thread-title').value = '';
                 document.getElementById('thread-content').value = '';
+            } else {
+                alert('Please enter both title and content.');
             }
         }
 
         function addThread(thread) {
             const threadsDiv = document.getElementById('threads');
+            if (document.getElementById(`thread-${thread.id}`)) {
+                return; // Avoid duplicate threads
+            }
             const threadDiv = document.createElement('div');
             threadDiv.className = 'thread';
+            threadDiv.id = `thread-${thread.id}`;
             threadDiv.innerHTML = `
                 <h4>${thread.title}</h4>
                 <p>${thread.content}</p>
@@ -242,7 +293,7 @@
                     <button onclick="replyToThread(${thread.id})">Reply</button>
                 </div>
             `;
-            threadsDiv.appendChild(threadDiv);
+            threadsDiv.prepend(threadDiv);
         }
 
         function replyToThread(threadId) {
@@ -252,17 +303,25 @@
                 ws.send(JSON.stringify({
                     type: 'new_reply',
                     thread_id: threadId,
-                    content: content
+                    content: content,
+                    user_id: userId
                 }));
                 textarea.value = '';
+            } else {
+                alert('Please enter a reply.');
             }
         }
 
         function addReply(reply) {
             const repliesDiv = document.getElementById(`replies-${reply.thread_id}`);
+            if (!repliesDiv) return;
+            if (document.getElementById(`reply-${reply.id}`)) {
+                return; // Avoid duplicate replies
+            }
             const replyDiv = document.createElement('div');
             replyDiv.className = 'reply';
-            replyDiv.textContent = reply.content;
+            replyDiv.id = `reply-${reply.id}`;
+            replyDiv.textContent = `${reply.author}: ${reply.content}`;
             repliesDiv.appendChild(replyDiv);
         }
 
@@ -274,6 +333,7 @@
 
         // Load initial threads (simulate)
         window.onload = function() {
+            connectWebSocket();
             // In real app, fetch from API
             addThread({ id: 1, title: 'Welcome to the Forum', content: 'This is the first thread.' });
         };
