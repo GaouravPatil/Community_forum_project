@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discussion Forum</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        nav {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1rem;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: 4px;
+            background-color: #0056b3;
+        }
+        nav a:hover {
+            background-color: #004085;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .sidebar {
+            flex: 1;
+            margin-right: 2rem;
+        }
+        .sidebar h3 {
+            margin-top: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin-bottom: 0.5rem;
+        }
+        .sidebar a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .main {
+            flex: 3;
+        }
+        .thread {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+        }
+        .thread h4 {
+            margin-top: 0;
+        }
+        .replies {
+            margin-top: 1rem;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+        .reply {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .reply-form {
+            margin-top: 1rem;
+        }
+        .reply-form textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .reply-form button {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .reply-form button:hover {
+            background-color: #218838;
+        }
+        .new-thread {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        .new-thread h3 {
+            margin-top: 0;
+        }
+        .new-thread input, .new-thread textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .new-thread button {
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .new-thread button:hover {
+            background-color: #0056b3;
+        }
+        .search {
+            margin-bottom: 2rem;
+        }
+        .search input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                margin-right: 0;
+                margin-bottom: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Discussion Forum</h1>
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#new-thread">New Thread</a>
+            <a href="#login">Login</a>
+            <a href="#register">Register</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h3>Categories</h3>
+            <ul>
+                <li><a href="#general">General</a></li>
+                <li><a href="#tech">Technology</a></li>
+                <li><a href="#sports">Sports</a></li>
+                <li><a href="#other">Other</a></li>
+            </ul>
+            <h3>Recent Posts</h3>
+            <ul id="recent-posts">
+                <!-- Dynamically populated -->
+            </ul>
+        </aside>
+
+        <main class="main">
+            <div class="search">
+                <input type="text" id="search-input" placeholder="Search threads...">
+            </div>
+
+            <div class="new-thread">
+                <h3>Start a New Thread</h3>
+                <input type="text" id="thread-title" placeholder="Thread Title">
+                <textarea id="thread-content" placeholder="Thread Content"></textarea>
+                <button onclick="createThread()">Post Thread</button>
+            </div>
+
+            <div id="threads">
+                <!-- Threads will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8000/ws/chat/'); // Adjust URL for Django Channels or backend
+
+        ws.onopen = function(event) {
+            console.log('WebSocket connected');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'new_thread') {
+                addThread(data.thread);
+            } else if (data.type === 'new_reply') {
+                addReply(data.reply);
+            }
+            updateRecentPosts();
+        };
+
+        ws.onclose = function(event) {
+            console.log('WebSocket disconnected');
+        };
+
+        function createThread() {
+            const title = document.getElementById('thread-title').value;
+            const content = document.getElementById('thread-content').value;
+            if (title && content) {
+                ws.send(JSON.stringify({
+                    type: 'new_thread',
+                    title: title,
+                    content: content
+                }));
+                document.getElementById('thread-title').value = '';
+                document.getElementById('thread-content').value = '';
+            }
+        }
+
+        function addThread(thread) {
+            const threadsDiv = document.getElementById('threads');
+            const threadDiv = document.createElement('div');
+            threadDiv.className = 'thread';
+            threadDiv.innerHTML = `
+                <h4>${thread.title}</h4>
+                <p>${thread.content}</p>
+                <div class="replies" id="replies-${thread.id}"></div>
+                <div class="reply-form">
+                    <textarea placeholder="Reply..."></textarea>
+                    <button onclick="replyToThread(${thread.id})">Reply</button>
+                </div>
+            `;
+            threadsDiv.appendChild(threadDiv);
+        }
+
+        function replyToThread(threadId) {
+            const textarea = event.target.previousElementSibling;
+            const content = textarea.value;
+            if (content) {
+                ws.send(JSON.stringify({
+                    type: 'new_reply',
+                    thread_id: threadId,
+                    content: content
+                }));
+                textarea.value = '';
+            }
+        }
+
+        function addReply(reply) {
+            const repliesDiv = document.getElementById(`replies-${reply.thread_id}`);
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'reply';
+            replyDiv.textContent = reply.content;
+            repliesDiv.appendChild(replyDiv);
+        }
+
+        function updateRecentPosts() {
+            // Simulate fetching recent posts; in real app, fetch from API
+            const recentPosts = document.getElementById('recent-posts');
+            recentPosts.innerHTML = '<li><a href="#thread1">Latest Thread</a></li>';
+        }
+
+        // Load initial threads (simulate)
+        window.onload = function() {
+            // In real app, fetch from API
+            addThread({ id: 1, title: 'Welcome to the Forum', content: 'This is the first thread.' });
+        };
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const threads = document.querySelectorAll('.thread');
+            threads.forEach(thread => {
+                const title = thread.querySelector('h4').textContent.toLowerCase();
+                const content = thread.querySelector('p').textContent.toLowerCase();
+                if (title.includes(query) || content.includes(query)) {
+                    thread.style.display = 'block';
+                } else {
+                    thread.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

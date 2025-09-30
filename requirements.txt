@@ -1,0 +1,2 @@
+Django==5.2.5
+channels==4.1.0
