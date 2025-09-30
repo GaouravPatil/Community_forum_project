@@ -3,189 +3,385 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discussion Forum</title>
+    <title>Modern Discussion Forum</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+            min-height: 100vh;
+        }
+
         header {
-            background-color: #007bff;
-            color: white;
-            padding: 1rem;
-            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         nav {
             display: flex;
-            justify-content: space-around;
-            margin-top: 1rem;
+            gap: 1rem;
         }
+
         nav a {
-            color: white;
+            color: #4a5568;
             text-decoration: none;
-            padding: 0.5rem;
-            border-radius: 4px;
-            background-color: #0056b3;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
+
         nav a:hover {
-            background-color: #004085;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
         }
+
         .container {
             display: flex;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 2rem;
+            gap: 2rem;
         }
+
         .sidebar {
-            flex: 1;
-            margin-right: 2rem;
+            flex: 0 0 280px;
+            position: sticky;
+            top: 100px;
+            height: fit-content;
         }
-        .sidebar h3 {
-            margin-top: 0;
+
+        .sidebar-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
+
+        .sidebar-card h3 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
         .sidebar ul {
             list-style: none;
-            padding: 0;
         }
+
         .sidebar li {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
         }
+
         .sidebar a {
-            color: #007bff;
+            color: #667eea;
             text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 8px;
         }
+
+        .sidebar a:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+
         .main {
-            flex: 3;
+            flex: 1;
+            min-width: 0;
         }
-        .thread {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            padding: 1rem;
-        }
-        .thread h4 {
-            margin-top: 0;
-        }
-        .replies {
-            margin-top: 1rem;
-            border-top: 1px solid #eee;
-            padding-top: 1rem;
-        }
-        .reply {
-            margin-bottom: 0.5rem;
-            padding: 0.5rem;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-        }
-        .reply-form {
-            margin-top: 1rem;
-        }
-        .reply-form textarea {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .reply-form button {
-            margin-top: 0.5rem;
-            padding: 0.5rem 1rem;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .reply-form button:hover {
-            background-color: #218838;
-        }
-        .new-thread {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 2rem;
-        }
-        .new-thread h3 {
-            margin-top: 0;
-        }
-        .new-thread input, .new-thread textarea {
-            width: 100%;
-            padding: 0.5rem;
-            margin-bottom: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .new-thread button {
-            padding: 0.5rem 1rem;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .new-thread button:hover {
-            background-color: #0056b3;
-        }
+
         .search {
             margin-bottom: 2rem;
         }
+
         .search input {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
         }
-        @media (max-width: 768px) {
+
+        .search input:focus {
+            outline: none;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .new-thread {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .new-thread h3 {
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+        }
+
+        .new-thread input,
+        .new-thread textarea {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .new-thread input:focus,
+        .new-thread textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .new-thread textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .new-thread button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .new-thread button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .thread {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .thread:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .thread h4 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .thread p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .thread-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 1rem;
+        }
+
+        .replies {
+            margin-top: 1.5rem;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+
+        .reply {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .reply-author {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .reply-form {
+            margin-top: 1.5rem;
+        }
+
+        .reply-form textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .reply-form textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .reply-form button {
+            margin-top: 0.8rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .reply-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        #ws-status {
+            padding: 1rem;
+            text-align: center;
+            border-radius: 8px;
+            margin: 1rem 2rem;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: rgba(72, 187, 120, 0.1);
+            color: #2f855a;
+        }
+
+        .status-disconnected {
+            background: rgba(245, 101, 101, 0.1);
+            color: #c53030;
+        }
+
+        @media (max-width: 1024px) {
             .container {
                 flex-direction: column;
             }
+
             .sidebar {
-                margin-right: 0;
-                margin-bottom: 2rem;
+                flex: 1;
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .container {
+                padding: 0 1rem;
             }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Discussion Forum</h1>
-        <nav>
-            <a href="#home">Home</a>
-            <a href="#new-thread">New Thread</a>
-            <a href="#login">Login</a>
-            <a href="#register">Register</a>
-        </nav>
+        <div class="header-content">
+            <h1>💬 Discussion Forum</h1>
+            <nav>
+                <a href="#home">🏠 Home</a>
+                <a href="#new-thread">✏️ New Thread</a>
+                <a href="#login">🔐 Login</a>
+                <a href="#register">📝 Register</a>
+            </nav>
+        </div>
     </header>
 
     <div class="container">
         <aside class="sidebar">
-            <h3>Categories</h3>
-            <ul>
-                <li><a href="#general">General</a></li>
-                <li><a href="#tech">Technology</a></li>
-                <li><a href="#sports">Sports</a></li>
-                <li><a href="#other">Other</a></li>
-            </ul>
-            <h3>Recent Posts</h3>
-            <ul id="recent-posts">
-                <!-- Dynamically populated -->
-            </ul>
+            <div class="sidebar-card">
+                <h3>📂 Categories</h3>
+                <ul>
+                    <li><a href="#general">💭 General Discussion</a></li>
+                    <li><a href="#tech">💻 Technology</a></li>
+                    <li><a href="#sports">⚽ Sports</a></li>
+                    <li><a href="#gaming">🎮 Gaming</a></li>
+                    <li><a href="#other">🌟 Other</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-card">
+                <h3>🔥 Recent Posts</h3>
+                <ul id="recent-posts">
+                    <li><a href="#thread1">Getting started...</a></li>
+                </ul>
+            </div>
         </aside>
 
         <main class="main">
             <div class="search">
-                <input type="text" id="search-input" placeholder="Search threads...">
+                <input type="text" id="search-input" placeholder="🔍 Search threads...">
             </div>
 
             <div class="new-thread">
-                <h3>Start a New Thread</h3>
-                <input type="text" id="thread-title" placeholder="Thread Title">
-                <textarea id="thread-content" placeholder="Thread Content"></textarea>
-                <button onclick="createThread()">Post Thread</button>
+                <h3>✨ Start a New Thread</h3>
+                <input type="text" id="thread-title" placeholder="Enter an interesting title...">
+                <textarea id="thread-content" placeholder="Share your thoughts with the community..."></textarea>
+                <button onclick="createThread()">🚀 Post Thread</button>
             </div>
 
             <div id="threads">
@@ -199,7 +395,7 @@
         let reconnectInterval;
         const maxReconnectAttempts = 5;
         let reconnectAttempts = 0;
-        const userId = 1; // In a real app, get this from authentication
+        const userId = 1;
 
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8000/ws/chat/');
@@ -208,7 +404,7 @@
                 console.log('WebSocket connected');
                 reconnectAttempts = 0;
                 clearInterval(reconnectInterval);
-                setStatus('Connected');
+                setStatus('Connected', true);
             };
 
             ws.onmessage = function(event) {
@@ -223,7 +419,7 @@
 
             ws.onclose = function(event) {
                 console.log('WebSocket disconnected');
-                setStatus('Disconnected. Reconnecting...');
+                setStatus('Disconnected. Reconnecting...', false);
                 attemptReconnect();
             };
 
@@ -241,22 +437,19 @@
                     connectWebSocket();
                 }, 2000 * reconnectAttempts);
             } else {
-                setStatus('Unable to connect to server.');
+                setStatus('Unable to connect to server.', false);
             }
         }
 
-        function setStatus(message) {
+        function setStatus(message, isConnected) {
             let statusDiv = document.getElementById('ws-status');
             if (!statusDiv) {
                 statusDiv = document.createElement('div');
                 statusDiv.id = 'ws-status';
-                statusDiv.style.padding = '10px';
-                statusDiv.style.backgroundColor = '#f8d7da';
-                statusDiv.style.color = '#721c24';
-                statusDiv.style.textAlign = 'center';
                 document.body.insertBefore(statusDiv, document.body.firstChild);
             }
             statusDiv.textContent = message;
+            statusDiv.className = isConnected ? 'status-connected' : 'status-disconnected';
         }
 
         function createThread() {
@@ -279,18 +472,22 @@
         function addThread(thread) {
             const threadsDiv = document.getElementById('threads');
             if (document.getElementById(`thread-${thread.id}`)) {
-                return; // Avoid duplicate threads
+                return;
             }
             const threadDiv = document.createElement('div');
             threadDiv.className = 'thread';
             threadDiv.id = `thread-${thread.id}`;
             threadDiv.innerHTML = `
                 <h4>${thread.title}</h4>
+                <div class="thread-meta">
+                    <span>👤 User ${thread.user_id || userId}</span>
+                    <span>📅 Just now</span>
+                </div>
                 <p>${thread.content}</p>
                 <div class="replies" id="replies-${thread.id}"></div>
                 <div class="reply-form">
-                    <textarea placeholder="Reply..."></textarea>
-                    <button onclick="replyToThread(${thread.id})">Reply</button>
+                    <textarea placeholder="Write a reply..."></textarea>
+                    <button onclick="replyToThread(${thread.id})">💬 Reply</button>
                 </div>
             `;
             threadsDiv.prepend(threadDiv);
@@ -316,29 +513,40 @@
             const repliesDiv = document.getElementById(`replies-${reply.thread_id}`);
             if (!repliesDiv) return;
             if (document.getElementById(`reply-${reply.id}`)) {
-                return; // Avoid duplicate replies
+                return;
             }
             const replyDiv = document.createElement('div');
             replyDiv.className = 'reply';
             replyDiv.id = `reply-${reply.id}`;
-            replyDiv.textContent = `${reply.author}: ${reply.content}`;
+            replyDiv.innerHTML = `
+                <div class="reply-author">${reply.author || 'User ' + userId}</div>
+                <div>${reply.content}</div>
+            `;
             repliesDiv.appendChild(replyDiv);
         }
 
         function updateRecentPosts() {
-            // Simulate fetching recent posts; in real app, fetch from API
+            const threads = document.querySelectorAll('.thread h4');
             const recentPosts = document.getElementById('recent-posts');
-            recentPosts.innerHTML = '<li><a href="#thread1">Latest Thread</a></li>';
+            recentPosts.innerHTML = '';
+            Array.from(threads).slice(0, 5).forEach((thread, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#thread-${index + 1}">${thread.textContent.substring(0, 30)}...</a>`;
+                recentPosts.appendChild(li);
+            });
         }
 
-        // Load initial threads (simulate)
         window.onload = function() {
             connectWebSocket();
-            // In real app, fetch from API
-            addThread({ id: 1, title: 'Welcome to the Forum', content: 'This is the first thread.' });
+            addThread({ 
+                id: 1, 
+                title: 'Welcome to Our Community! 🎉', 
+                content: 'This is your new discussion forum. Feel free to create threads and engage with the community. We\'re excited to have you here!',
+                user_id: 1
+            });
+            updateRecentPosts();
         };
 
-        // Search functionality
         document.getElementById('search-input').addEventListener('input', function() {
             const query = this.value.toLowerCase();
             const threads = document.querySelectorAll('.thread');
