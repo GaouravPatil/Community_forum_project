@@ -2,8 +2,8 @@
 FROM python:3.11-slim
 
 # Set env variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Set work directory
 WORKDIR /app
@@ -32,4 +32,4 @@ COPY . /app/
 EXPOSE 8000
 
 # Start the service of daphne
-CMD service redis-server start && daphne -b 0.0.0.0 -p 8000 project.asgi:application
+CMD ["sh", "-c", "service redis-server start && daphne -b 0.0.0.0 -p 8000 project.asgi:application"]
