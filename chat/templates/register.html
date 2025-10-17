@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Community Forum{% endblock %}
+
+{% block header_title %}📝 Register{% endblock %}
+
+{% block content %}
+    <h2>Create Your Account</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Register</button>
+    </form>
+    <div class="auth-links">
+        <a href="{% url 'login' %}">Already have an account? Login</a>
+    </div>
+{% endblock %}

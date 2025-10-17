@@ -44,25 +44,31 @@
             background-clip: text;
         }
 
-        nav {
-            display: flex;
-            gap: 1rem;
-        }
+            nav {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
 
-        nav a {
-            color: #4a5568;
-            text-decoration: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
+            nav a {
+                color: #4a5568;
+                text-decoration: none;
+                padding: 0.6rem 1.2rem;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+                font-weight: 500;
+            }
 
-        nav a:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            transform: translateY(-2px);
-        }
+            nav a:hover {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            .user-info {
+                color: #2d3748;
+                font-weight: 600;
+            }
 
         .container {
             display: flex;
@@ -92,6 +98,116 @@
             color: #2d3748;
             margin-bottom: 1rem;
             font-size: 1.2rem;
+        }
+
+        .vote-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .vote-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .vote-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .vote-btn.upvoted {
+            color: #48bb78;
+        }
+
+        .vote-btn.downvoted {
+            color: #f56565;
+        }
+
+        .vote-count {
+            font-weight: bold;
+            margin: 0 0.5rem;
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+
+        .chat-input button {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+            gap: 0.5rem;
+        }
+
+        .pagination a, .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #4a5568;
+        }
+
+        .pagination .current {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
         .sidebar ul {
@@ -346,8 +462,13 @@
             <nav>
                 <a href="#home">🏠 Home</a>
                 <a href="#new-thread">✏️ New Thread</a>
-                <a href="#login">🔐 Login</a>
-                <a href="#register">📝 Register</a>
+                {% if user.is_authenticated %}
+                    <span class="user-info">Welcome, {{ user.username }}!</span>
+                    <a href="{% url 'logout' %}">🚪 Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">🔐 Login</a>
+                    <a href="{% url 'register' %}">📝 Register</a>
+                {% endif %}
             </nav>
         </div>
     </header>
@@ -385,17 +506,73 @@
             </div>
 
             <div id="threads">
-                <!-- Threads will be loaded here -->
+                {% for thread in page_obj %}
+                <div class="thread" id="thread-{{ thread.id }}">
+                    <h4>{{ thread.title }}</h4>
+                    <div class="thread-meta">
+                        <span>👤 {{ thread.author.username }}</span>
+                        <span>📅 {{ thread.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <p>{{ thread.content }}</p>
+                    <div class="vote-buttons">
+                        <button class="vote-btn {% if thread.user_vote|length > 0 and thread.user_vote == 1 %}upvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, 1)">👍</button>
+                        <span class="vote-count">{{ thread.vote_count }}</span>
+                        <button class="vote-btn {% if thread.user_vote|length > 0 and thread.user_vote == -1 %}downvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, -1)">👎</button>
+                    </div>
+                    <div class="replies" id="replies-{{ thread.id }}">
+                        {% for reply in thread.replies.all %}
+                        <div class="reply" id="reply-{{ reply.id }}">
+                            <div class="reply-author">{{ reply.author.username }}</div>
+                            <div>{{ reply.content }}</div>
+                            <div class="vote-buttons">
+                                <button class="vote-btn {% if reply.user_vote|length > 0 and reply.user_vote == 1 %}upvoted{% endif %}" onclick="vote('reply', {{ reply.id }}, 1)">👍</button>
+                                <span class="vote-count">{{ reply.vote_count }}</span>
+                                <button class="vote-btn {% if reply.user_vote|length > 0 and reply.user_vote == -1 %}downvoted{% endif %}" onclick="vote('reply', {{ reply.id }}, -1)">👎</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="reply-form">
+                        <textarea placeholder="Write a reply..."></textarea>
+                        <button onclick="replyToThread({{ thread.id }})">💬 Reply</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}">« Previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">Next »</a>
+                {% endif %}
             </div>
         </main>
     </div>
+
+    {% if user.is_authenticated %}
+    <div class="chat-container">
+        <div class="chat-header">💬 Live Chat</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+    {% endif %}
 
     <script>
         let ws;
         let reconnectInterval;
         const maxReconnectAttempts = 5;
         let reconnectAttempts = 0;
-        const userId = 1;
+        const userId = {{ user.id|default:0 }};
 
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8000/ws/chat/');
@@ -413,6 +590,10 @@
                     addThread(data.thread);
                 } else if (data.type === 'new_reply') {
                     addReply(data.reply);
+                } else if (data.type === 'vote_update') {
+                    updateVote(data.vote);
+                } else if (data.type === 'new_chat_message') {
+                    addChatMessage(data.message);
                 }
                 updateRecentPosts();
             };
@@ -460,7 +641,7 @@
                     type: 'new_thread',
                     title: title,
                     content: content,
-                    user_id: userId
+                    user_id: {{ user.id|default:0 }}
                 }));
                 document.getElementById('thread-title').value = '';
                 document.getElementById('thread-content').value = '';
@@ -501,7 +682,7 @@
                     type: 'new_reply',
                     thread_id: threadId,
                     content: content,
-                    user_id: userId
+                    user_id: {{ user.id|default:0 }}
                 }));
                 textarea.value = '';
             } else {
@@ -521,8 +702,86 @@
             replyDiv.innerHTML = `
                 <div class="reply-author">${reply.author || 'User ' + userId}</div>
                 <div>${reply.content}</div>
+                <div class="vote-buttons">
+                    <button class="vote-btn" onclick="vote('reply', ${reply.id}, 1)">👍</button>
+                    <span class="vote-count">0</span>
+                    <button class="vote-btn" onclick="vote('reply', ${reply.id}, -1)">👎</button>
+                </div>
             `;
             repliesDiv.appendChild(replyDiv);
+        }
+
+        function vote(modelType, objectId, voteType) {
+            fetch(`/chat/vote/${modelType}/${objectId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: `vote_type=${voteType}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                ws.send(JSON.stringify({
+                    type: 'vote',
+                    model_type: modelType,
+                    object_id: objectId,
+                    vote_type: voteType
+                }));
+            })
+            .catch(error => console.error('Error voting:', error));
+        }
+
+        function updateVote(voteData) {
+            const voteCountSpan = document.querySelector(`#${voteData.model_type}-${voteData.object_id} .vote-count`);
+            if (voteCountSpan) {
+                voteCountSpan.textContent = voteData.vote_count;
+            }
+            const voteBtns = document.querySelectorAll(`#${voteData.model_type}-${voteData.object_id} .vote-btn`);
+            voteBtns.forEach(btn => {
+                btn.classList.remove('upvoted', 'downvoted');
+                if (btn.onclick.toString().includes('1') && voteData.user_vote === 1) {
+                    btn.classList.add('upvoted');
+                } else if (btn.onclick.toString().includes('-1') && voteData.user_vote === -1) {
+                    btn.classList.add('downvoted');
+                }
+            });
+        }
+
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue || '';
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const content = input.value.trim();
+            if (content) {
+                ws.send(JSON.stringify({
+                    type: 'chat_message',
+                    content: content
+                }));
+                input.value = '';
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function addChatMessage(message) {
+            const messagesDiv = document.getElementById('chat-messages');
+            if (!messagesDiv) return;
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            messageDiv.innerHTML = `<strong>${message.author}:</strong> ${message.content}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
         function updateRecentPosts() {
