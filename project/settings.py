@@ -129,6 +129,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (for user avatars)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Authentication settings
 LOGIN_REDIRECT_URL = '/chat/'
 LOGOUT_REDIRECT_URL = '/chat/'

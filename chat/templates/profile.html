@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Discussion Forum</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .profile-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            border: 4px solid #667eea;
+            object-fit: cover;
+        }
+
+        .username {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .join-date {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .file-input {
+            padding: 0.5rem;
+        }
+
+        .current-avatar {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .btn {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            margin-left: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .form-actions {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .messages {
+            margin-bottom: 1rem;
+        }
+
+        .success {
+            background: rgba(72, 187, 120, 0.1);
+            color: #2f855a;
+            padding: 0.8rem;
+            border-radius: 4px;
+            border-left: 4px solid #48bb78;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .profile-card {
+                padding: 1.5rem;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-card">
+            <div class="profile-header">
+                {% if user_profile.avatar %}
+                    <img src="{{ user_profile.avatar.url }}" alt="Avatar" class="avatar">
+                {% else %}
+                    <div class="avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem; font-weight: bold;">
+                        {{ user.username|first|upper }}
+                    </div>
+                {% endif %}
+                <h1 class="username">{{ user.username }}</h1>
+                <p class="join-date">Member since {{ user_profile.join_date|date:"F Y" }}</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">{{ user.thread_set.count }}</div>
+                    <div class="stat-label">Threads</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ user.reply_set.count }}</div>
+                    <div class="stat-label">Replies</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ user_profile.notifications.filter|length }}</div>
+                    <div class="stat-label">Notifications</div>
+                </div>
+            </div>
+
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="success">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="{{ form.avatar.id_for_label }}">Profile Picture</label>
+                    {{ form.avatar }}
+                    {% if user_profile.avatar %}
+                        <div class="current-avatar">Current: <a href="{{ user_profile.avatar.url }}" target="_blank">View current avatar</a></div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.bio.id_for_label }}">Bio</label>
+                    {{ form.bio }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.location.id_for_label }}">Location</label>
+                    {{ form.location }}
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                    <a href="{% url 'index' %}" class="btn btn-secondary">Back to Forum</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

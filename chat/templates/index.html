@@ -464,6 +464,13 @@
                 <a href="#new-thread">✏️ New Thread</a>
                 {% if user.is_authenticated %}
                     <span class="user-info">Welcome, {{ user.username }}!</span>
+                    <a href="{% url 'profile' %}">👤 Profile</a>
+                    <a href="{% url 'notifications' %}" style="position: relative;">
+                        🔔 Notifications
+                        {% if unread_notifications > 0 %}
+                            <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
+                        {% endif %}
+                    </a>
                     <a href="{% url 'logout' %}">🚪 Logout</a>
                 {% else %}
                     <a href="{% url 'login' %}">🔐 Login</a>
@@ -477,30 +484,45 @@
         <aside class="sidebar">
             <div class="sidebar-card">
                 <h3>📂 Categories</h3>
+                <select id="category-filter" onchange="filterByCategory()" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id|stringformat:"s" == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
                 <ul>
-                    <li><a href="#general">💭 General Discussion</a></li>
-                    <li><a href="#tech">💻 Technology</a></li>
-                    <li><a href="#sports">⚽ Sports</a></li>
-                    <li><a href="#gaming">🎮 Gaming</a></li>
-                    <li><a href="#other">🌟 Other</a></li>
+                    {% for category in categories %}
+                        <li><a href="?category={{ category.id }}">{{ category.name }}</a></li>
+                    {% endfor %}
                 </ul>
             </div>
             <div class="sidebar-card">
                 <h3>🔥 Recent Posts</h3>
                 <ul id="recent-posts">
-                    <li><a href="#thread1">Getting started...</a></li>
+                    {% for thread in page_obj|slice:":5" %}
+                        <li><a href="#thread-{{ thread.id }}">{{ thread.title|truncatechars:30 }}</a></li>
+                    {% empty %}
+                        <li>No threads yet</li>
+                    {% endfor %}
                 </ul>
             </div>
         </aside>
 
         <main class="main">
             <div class="search">
-                <input type="text" id="search-input" placeholder="🔍 Search threads...">
+                <input type="text" id="search-input" placeholder="🔍 Search threads..." value="{{ query }}">
+                <button onclick="performSearch()" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; cursor: pointer; margin-left: 0.5rem;">Search</button>
             </div>
 
             <div class="new-thread">
                 <h3>✨ Start a New Thread</h3>
                 <input type="text" id="thread-title" placeholder="Enter an interesting title...">
+                <select id="thread-category" style="width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem;">
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
                 <textarea id="thread-content" placeholder="Share your thoughts with the community..."></textarea>
                 <button onclick="createThread()">🚀 Post Thread</button>
             </div>
@@ -512,6 +534,9 @@
                     <div class="thread-meta">
                         <span>👤 {{ thread.author.username }}</span>
                         <span>📅 {{ thread.created_at|date:"M d, Y H:i" }}</span>
+                        {% if thread.category %}
+                            <span>📂 {{ thread.category.name }}</span>
+                        {% endif %}
                     </div>
                     <p>{{ thread.content }}</p>
                     <div class="vote-buttons">
@@ -636,18 +661,27 @@
         function createThread() {
             const title = document.getElementById('thread-title').value;
             const content = document.getElementById('thread-content').value;
+            const category = document.getElementById('thread-category').value;
             if (title && content) {
                 ws.send(JSON.stringify({
                     type: 'new_thread',
                     title: title,
                     content: content,
+                    category_id: category,
                     user_id: {{ user.id|default:0 }}
                 }));
                 document.getElementById('thread-title').value = '';
                 document.getElementById('thread-content').value = '';
+                document.getElementById('thread-category').value = '';
             } else {
                 alert('Please enter both title and content.');
             }
+        }
+
+        function filterByCategory() {
+            const categoryId = document.getElementById('category-filter').value;
+            const url = categoryId ? `?category=${categoryId}` : window.location.pathname;
+            window.location.href = url;
         }
 
         function addThread(thread) {
@@ -806,18 +840,20 @@
             updateRecentPosts();
         };
 
-        document.getElementById('search-input').addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            const threads = document.querySelectorAll('.thread');
-            threads.forEach(thread => {
-                const title = thread.querySelector('h4').textContent.toLowerCase();
-                const content = thread.querySelector('p').textContent.toLowerCase();
-                if (title.includes(query) || content.includes(query)) {
-                    thread.style.display = 'block';
-                } else {
-                    thread.style.display = 'none';
-                }
-            });
+        function performSearch() {
+            const query = document.getElementById('search-input').value;
+            const categoryId = document.getElementById('category-filter').value;
+            let url = '?q=' + encodeURIComponent(query);
+            if (categoryId) {
+                url += '&category=' + categoryId;
+            }
+            window.location.href = url;
+        }
+
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
         });
     </script>
 </body>

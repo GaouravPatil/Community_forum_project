@@ -6,19 +6,46 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Q
 import json
 
-from .models import Thread, Reply, Vote, ChatMessage
-from .forms import ThreadForm, ReplyForm
+from .models import Thread, Reply, Vote, ChatMessage, UserProfile, Category, Notification
+from .forms import ThreadForm, ReplyForm, UserProfileForm
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest
 
 def index(request):
+    query = request.GET.get('q', '')
+    category_id = request.GET.get('category', '')
+
     threads = Thread.objects.all().order_by('-created_at')
+
+    if query:
+        threads = threads.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query) |
+            Q(author__username__icontains=query)
+        )
+
+    if category_id:
+        threads = threads.filter(category_id=category_id)
+
     paginator = Paginator(threads, 10)  # Show 10 threads per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'index.html', {'page_obj': page_obj})
+
+    categories = Category.objects.all()
+    unread_notifications = 0
+    if request.user.is_authenticated:
+        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+
+    return render(request, 'index.html', {
+        'page_obj': page_obj,
+        'categories': categories,
+        'query': query,
+        'selected_category': category_id,
+        'unread_notifications': unread_notifications
+    })
 
 @csrf_exempt
 @login_required
@@ -50,6 +77,16 @@ def create_reply(request, thread_id):
         reply.thread = thread
         reply.author = request.user
         reply.save()
+
+        # Create notification for thread author if not the same user
+        if thread.author != request.user:
+            Notification.objects.create(
+                user=thread.author,
+                message=f"{request.user.username} replied to your thread '{thread.title}'",
+                thread=thread,
+                reply=reply
+            )
+
         return JsonResponse({
             'id': reply.id,
             'content': reply.content,
@@ -62,7 +99,9 @@ def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            # Create UserProfile for the new user
+            UserProfile.objects.create(user=user)
             messages.success(request, 'Account created successfully! Please log in.')
             return redirect('login')
     else:
@@ -125,3 +164,57 @@ def send_chat_message(request):
         'created_at': message.created_at.isoformat(),
         'type': 'new_chat_message'
     })
+
+@login_required
+def profile(request):
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=user_profile)
+
+    return render(request, 'profile.html', {'form': form, 'user_profile': user_profile})
+
+@login_required
+def notifications(request):
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    if request.method == 'POST':
+        # Mark all as read
+        notifications.update(is_read=True)
+        return JsonResponse({'status': 'success'})
+
+    return render(request, 'notifications.html', {'notifications': notifications})
+
+def search(request):
+    query = request.GET.get('q', '')
+    category_id = request.GET.get('category', '')
+    threads = Thread.objects.all().order_by('-created_at')
+
+    if query:
+        threads = threads.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query) |
+            Q(author__username__icontains=query)
+        )
+
+    if category_id:
+        threads = threads.filter(category_id=category_id)
+
+    threads_data = []
+    for thread in threads[:20]:  # Limit to 20 results
+        threads_data.append({
+            'id': thread.id,
+            'title': thread.title,
+            'content': thread.content[:100] + '...' if len(thread.content) > 100 else thread.content,
+            'author': thread.author.username,
+            'category': thread.category.name if thread.category else 'General',
+            'created_at': thread.created_at.strftime('%Y-%m-%d %H:%M'),
+            'replies_count': thread.replies.count(),
+            'vote_count': thread.vote_count(),
+        })
+
+    return JsonResponse({'threads': threads_data})

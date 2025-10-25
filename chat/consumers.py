@@ -36,8 +36,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
             title = text_data_json.get('title')
             content = text_data_json.get('content')
+            category_id = text_data_json.get('category_id')
             if title and content:
-                thread = await self.create_thread(title, content, self.user)
+                thread = await self.create_thread(title, content, category_id, self.user)
                 if thread:
                     await self.channel_layer.group_send(
                         self.room_group_name,
@@ -48,6 +49,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                 'title': thread.title,
                                 'content': thread.content,
                                 'author': thread.author.username,
+                                'category': thread.category.name if thread.category else 'General',
                                 'created_at': str(thread.created_at),
                             }
                         }
@@ -129,9 +131,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.send(text_data=json.dumps({'error': 'Content is required'}))
 
     @database_sync_to_async
-    def create_thread(self, title, content, user):
+    def create_thread(self, title, content, category_id, user):
         try:
-            thread = Thread.objects.create(title=title, content=content, author=user)
+            category = None
+            if category_id:
+                from .models import Category
+                category = Category.objects.get(id=category_id)
+            thread = Thread.objects.create(title=title, content=content, author=user, category=category)
             return thread
         except Exception as e:
             print(f"Error creating thread: {e}")
@@ -142,6 +148,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             thread = Thread.objects.get(id=thread_id)
             reply = Reply.objects.create(thread=thread, content=content, author=user)
+
+            # Create notification for thread author if not the same user
+            if thread.author != user:
+                from .models import Notification
+                Notification.objects.create(
+                    user=thread.author,
+                    message=f"{user.username} replied to your thread '{thread.title}'",
+                    thread=thread,
+                    reply=reply
+                )
+
             return reply
         except Thread.DoesNotExist:
             return None

@@ -8,4 +8,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('vote/<str:model_type>/<int:object_id>/', views.vote, name='vote'),
     path('send-chat-message/', views.send_chat_message, name='send_chat_message'),
+    path('profile/', views.profile, name='profile'),
+    path('notifications/', views.notifications, name='notifications'),
+    path('search/', views.search, name='search'),
 ]
