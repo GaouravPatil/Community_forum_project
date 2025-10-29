@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from channels.auth import get_user
-from .models import Thread, Reply, Vote, ChatMessage
+from chat.models import Thread, Reply, Vote, ChatMessage
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 
@@ -233,4 +233,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'new_chat_message',
             'message': event['message']
+        }))
+
+    async def notification_broadcast(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'new_notification',
+            'notification': event['notification']
         }))

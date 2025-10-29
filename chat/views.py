@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -94,6 +95,19 @@ def create_reply(request, thread_id):
             'type': 'new_reply'
         })
     return JsonResponse({'error': 'Invalid form'}, status=400)
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, 'Logged in successfully!')
+            return redirect('index')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    return render(request, 'login.html')
 
 def register(request):
     if request.method == 'POST':
@@ -188,6 +202,21 @@ def notifications(request):
         return JsonResponse({'status': 'success'})
 
     return render(request, 'notifications.html', {'notifications': notifications})
+
+@login_required
+def create_thread_form(request):
+    if request.method == 'POST':
+        form = ThreadForm(request.POST)
+        if form.is_valid():
+            thread = form.save(commit=False)
+            thread.author = request.user
+            thread.save()
+            messages.success(request, 'Thread created successfully!')
+            return redirect('index')
+    else:
+        form = ThreadForm()
+    categories = Category.objects.all()
+    return render(request, 'create_thread.html', {'form': form, 'categories': categories})
 
 def search(request):
     query = request.GET.get('q', '')
