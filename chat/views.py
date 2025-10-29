@@ -51,6 +51,9 @@ def index(request):
 def contact(request):
     return render(request, 'contact.html')
 
+def about(request):
+    return render(request, 'about.html')
+
 @csrf_exempt
 @login_required
 @require_http_methods(["POST"])
@@ -206,8 +209,7 @@ def notifications(request):
 
     return render(request, 'notifications.html', {'notifications': notifications})
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 @login_required
 def create_thread_form(request):
     if request.method == 'POST':
@@ -222,30 +224,6 @@ def create_thread_form(request):
         form = ThreadForm()
     categories = Category.objects.all()
     return render(request, 'create_thread.html', {'form': form, 'categories': categories})
-=======
-def about(request):
-    return render(request, 'about.html') 
->>>>>>> 122a571 (Added About Us and Contact us page and Updated base.html so that navbar and footer will remain same for all other pages)
-=======
-def about(request):
-    return render(request, 'about.html') 
-=======
-@login_required
-def create_thread_form(request):
-    if request.method == 'POST':
-        form = ThreadForm(request.POST)
-        if form.is_valid():
-            thread = form.save(commit=False)
-            thread.author = request.user
-            thread.save()
-            messages.success(request, 'Thread created successfully!')
-            return redirect('index')
-    else:
-        form = ThreadForm()
-    categories = Category.objects.all()
-    return render(request, 'create_thread.html', {'form': form, 'categories': categories})
->>>>>>> e3cf19b (Add run server functionality and update TODO.md)
->>>>>>> 64df577 (Resloved the error)
 
 def search(request):
     query = request.GET.get('q', '')
