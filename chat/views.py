@@ -47,6 +47,9 @@ def index(request):
         'selected_category': category_id,
         'unread_notifications': unread_notifications
     })
+    
+def contact(request):
+    return render(request, 'contact.html')
 
 @csrf_exempt
 @login_required
@@ -203,6 +206,7 @@ def notifications(request):
 
     return render(request, 'notifications.html', {'notifications': notifications})
 
+<<<<<<< HEAD
 @login_required
 def create_thread_form(request):
     if request.method == 'POST':
@@ -217,6 +221,10 @@ def create_thread_form(request):
         form = ThreadForm()
     categories = Category.objects.all()
     return render(request, 'create_thread.html', {'form': form, 'categories': categories})
+=======
+def about(request):
+    return render(request, 'about.html') 
+>>>>>>> 122a571 (Added About Us and Contact us page and Updated base.html so that navbar and footer will remain same for all other pages)
 
 def search(request):
     query = request.GET.get('q', '')
