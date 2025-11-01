@@ -46,6 +46,9 @@ def index(request):
         'selected_category': category_id,
         'unread_notifications': unread_notifications
     })
+    
+def contact(request):
+    return render(request, 'contact.html')
 
 @csrf_exempt
 @login_required
@@ -188,6 +191,9 @@ def notifications(request):
         return JsonResponse({'status': 'success'})
 
     return render(request, 'notifications.html', {'notifications': notifications})
+
+def about(request):
+    return render(request, 'about.html') 
 
 def search(request):
     query = request.GET.get('q', '')

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About Us - Discussion Forum{% endblock %}
+
+{% block content %}
+<div class="about-page">
+    <h2>About Our Community Forum 💬</h2>
+    <p>Welcome to our discussion forum! Here, people from all walks of life come together to share ideas, ask questions, and learn from one another. Our goal is to create a safe, informative, and engaging space for everyone.</p>
+
+    <h3>Our Mission 🎯</h3>
+    <p>We aim to empower users to have meaningful conversations, find solutions, and grow knowledge collectively.</p>
+
+    <h3>Meet Our Team 👥</h3>
+    <div class="team">
+        <div class="member">
+            <img src="{% static 'images/member1.jpg' %}" alt="Member 1">
+            <h4>Alice</h4>
+            <p>Community Manager</p>
+        </div>
+        <div class="member">
+            <img src="{% static 'images/member2.jpg' %}" alt="Member 2">
+            <h4>Bob</h4>
+            <p>Lead Developer</p>
+        </div>
+        <div class="member">
+            <img src="{% static 'images/member3.jpg' %}" alt="Member 3">
+            <h4>Clara</h4>
+            <p>Moderator</p>
+        </div>
+    </div>
+
+    <h3>Interactive Fun 🕹️</h3>
+    <p>Click the button below to see a random motivational message from our community:</p>
+    <button id="motivateBtn">Show Message</button>
+    <p id="message" style="font-weight:bold; margin-top:10px;"></p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const messages = [
+    "Keep learning, keep growing!",
+    "Your question might help someone else!",
+    "Every expert was once a beginner.",
+    "Share knowledge, gain wisdom.",
+    "Community is strength!"
+];
+
+document.getElementById('motivateBtn').addEventListener('click', () => {
+    const randomIndex = Math.floor(Math.random() * messages.length);
+    document.getElementById('message').textContent = messages[randomIndex];
+});
+</script>
+{% endblock %}

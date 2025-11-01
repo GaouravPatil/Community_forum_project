@@ -12,112 +12,148 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .auth-header {
+
+        header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 1.5rem 2rem;
-            text-align: center;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.2rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .auth-header h1 {
-            margin: 0;
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .auth-container {
-            max-width: 400px;
-            margin: 2rem auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-        .auth-container h2 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            color: #2d3748;
-        }
-        .auth-container form {
+
+        nav {
             display: flex;
-            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
         }
-        .auth-container input {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
+
+        nav a {
+            color: #4a5568;
+            text-decoration: none;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
-        .auth-container input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        .auth-container button {
-            padding: 1rem;
+
+        nav a:hover {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .auth-container button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
         }
-        .auth-links {
+
+        .user-info {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        footer {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
             text-align: center;
-            margin-top: 1rem;
+            padding: 1rem;
+            font-size: 0.9rem;
+            color: #4a5568;
+            border-top: 1px solid #e2e8f0;
         }
-        .auth-links a {
+
+        footer a {
             color: #667eea;
             text-decoration: none;
             margin: 0 0.5rem;
         }
-        .auth-links a:hover {
+
+        footer a:hover {
             text-decoration: underline;
         }
-        .messages {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 1rem;
-        }
-        .messages li {
-            padding: 0.5rem;
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
-        }
-        .messages .success {
-            background: rgba(72, 187, 120, 0.1);
-            color: #2f855a;
-        }
-        .messages .error {
-            background: rgba(245, 101, 101, 0.1);
-            color: #c53030;
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            main {
+                padding: 0 1rem;
+            }
         }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header class="auth-header">
-        <h1>{% block header_title %}💬 Community Forum{% endblock %}</h1>
+    <!-- 🌟 Navbar -->
+    <header>
+        <div class="header-content">
+            <h1>💬 Discussion Forum</h1>
+            <nav>
+                <a href="{% url 'index' %}">🏠 Home</a>
+                
+                <a href="{% url 'about' %}">About</a>
+                {% comment %} <a href="{% url 'profile' %}">👤 Profile</a> {% endcomment %}
+                {% if user.is_authenticated %}
+                    <span class="user-info">Welcome, {{ user.username }}!</span>
+                    <a href="{% url 'notifications' %}" style="position: relative;">
+                        🔔 Notifications
+                        {% if unread_notifications > 0 %}
+                            <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'logout' %}">🚪 Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">🔐 Login</a>
+                    <a href="{% url 'register' %}">📝 Register</a>
+                {% endif %}
+            </nav>
+        </div>
     </header>
-    <div class="auth-container">
-        {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                    <li class="{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+
+    <!-- 📄 Page Content -->
+    <main>
         {% block content %}{% endblock %}
-    </div>
+    </main>
+
+    <!-- ⚓ Footer -->
+    <footer>
+        <p>© {{ now|date:"Y" }} Community Forum. All Rights Reserved. |
+           <a href="{% url 'about' %}">About</a>
+|
+           <a href="{% url 'contact' %}">Contact</a>
+        </p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
