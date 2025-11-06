@@ -105,6 +105,71 @@
         }
     </style>
 </head>
+    <!-- 🔔 Notification Popup -->
+    <div id="popup-notifications" class="popup-notifications"></div>
+
+    <script>
+    async function fetchNotifications() {
+        try {
+            const response = await fetch("{% url 'notifications' %}", {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await response.json();
+            data.notifications.forEach(n => showNotification(n.message));
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
+    }
+
+    function showNotification(message) {
+        const container = document.getElementById("popup-notifications");
+        const notif = document.createElement("div");
+        notif.className = "notification-popup";
+        notif.innerHTML = message;
+
+        container.appendChild(notif);
+        setTimeout(() => notif.classList.add("fade-out"), 4000);
+        setTimeout(() => notif.remove(), 4500);
+    }
+
+    // Poll every 15 seconds
+    setInterval(fetchNotifications, 15000);
+</script>
+
+    <style>
+        /* 🔔 Notification Popup Styles */
+        .popup-notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+
+        .notification-popup {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            animation: slide-in 0.4s ease;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .fade-out {
+            opacity: 0;
+        }
+    </style>
+</body>
+</html>
+ 
 <body>
     <header class="auth-header">
         <h1>{% block header_title %}💬 Community Forum{% endblock %}</h1>

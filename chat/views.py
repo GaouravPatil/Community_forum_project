@@ -108,6 +108,26 @@ def register(request):
         form = UserCreationForm()
     return render(request, 'register.html', {'form': form})
 
+
+@login_required
+def notifications(request):
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        unread = notifications.filter(is_read=False)
+        data = [{
+            'message': n.message,
+            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+        } for n in unread]
+
+        # Mark them as read after sending
+        unread.update(is_read=True)
+        return JsonResponse({'notifications': data})
+
+    return render(request, 'notifications.html', {'notifications': notifications})
+
+
+
 @login_required
 def vote(request, model_type, object_id):
     if request.method != 'POST':
