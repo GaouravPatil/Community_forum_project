@@ -118,11 +118,12 @@
     <header>
         <div class="header-content">
             <h1>💬 Discussion Forum</h1>
-            <nav>
+            {% comment %} <nav>
                 <a href="{% url 'index' %}">🏠 Home</a>
                 
                 <a href="{% url 'about' %}">About</a>
-                {% comment %} <a href="{% url 'profile' %}">👤 Profile</a> {% endcomment %}
+                <a href="{% url 'profile' %}">👤 Profile</a>
+                <a href="{% url 'category_detail' category.id %}">
                 {% if user.is_authenticated %}
                     <span class="user-info">Welcome, {{ user.username }}!</span>
                     <a href="{% url 'notifications' %}" style="position: relative;">
@@ -136,7 +137,28 @@
                     <a href="{% url 'login' %}">🔐 Login</a>
                     <a href="{% url 'register' %}">📝 Register</a>
                 {% endif %}
-            </nav>
+            </nav> {% endcomment %}
+
+            <nav>
+    <a href="{% url 'index' %}">🏠 Home</a>
+    <a href="{% url 'about' %}">About</a>
+    <a href="{% url 'profile' %}">👤 Profile</a>
+
+    {% if user.is_authenticated %}
+        <span class="user-info">Welcome, {{ user.username }}!</span>
+        <a href="{% url 'notifications' %}" style="position: relative;">
+            🔔 Notifications
+            {% if unread_notifications > 0 %}
+                <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
+            {% endif %}
+        </a>
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+    {% else %}
+        <a href="{% url 'login' %}">🔐 Login</a>
+        <a href="{% url 'register' %}">📝 Register</a>
+    {% endif %}
+</nav>
+
         </div>
     </header>
 

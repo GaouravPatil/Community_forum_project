@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ category.name }}</h2>
+<p>{{ category.description }}</p>
+
+{% if category.private %}
+<p><em>🔒 Private Category</em></p>
+{% endif %}
+
+<ul>
+  {% for thread in threads %}
+    <li>{{ thread.title }}</li>
+  {% empty %}
+    <li>No threads yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
