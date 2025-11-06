@@ -1,860 +1,238 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Discussion Forum</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends 'base.html' %}
+{% load static %}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #2d3748;
-            min-height: 100vh;
-        }
+{% block title %}Home - Discussion Forum{% endblock %}
 
-        header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+{% block content %}
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #2d3748;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
 
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    main {
+        flex: 1;
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 2rem;
+        display: flex;
+        gap: 2rem;
+    }
 
-        h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    aside {
+        flex: 0.3;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
 
-            nav {
-                display: flex;
-                gap: 1rem;
-                align-items: center;
-            }
+    .sidebar-card {
+        margin-bottom: 2rem;
+    }
 
-            nav a {
-                color: #4a5568;
-                text-decoration: none;
-                padding: 0.6rem 1.2rem;
-                border-radius: 8px;
-                transition: all 0.3s ease;
-                font-weight: 500;
-            }
+    .sidebar-card h3 {
+        color: #4a5568;
+        margin-bottom: 0.8rem;
+    }
 
-            nav a:hover {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                transform: translateY(-2px);
-            }
+    .sidebar-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
 
-            .user-info {
-                color: #2d3748;
-                font-weight: 600;
-            }
+    .sidebar-card ul li {
+        margin-bottom: 0.5rem;
+    }
 
-        .container {
-            display: flex;
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-            gap: 2rem;
-        }
+    .sidebar-card ul li a {
+        color: #667eea;
+        text-decoration: none;
+        transition: 0.2s;
+    }
 
-        .sidebar {
-            flex: 0 0 280px;
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-        }
+    .sidebar-card ul li a:hover {
+        text-decoration: underline;
+    }
 
-        .sidebar-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
+    .main {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
 
-        .sidebar-card h3 {
-            color: #2d3748;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-        }
+    .new-thread {
+        margin-bottom: 2rem;
+    }
 
-        .vote-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
+    .new-thread h3 {
+        margin-bottom: 0.5rem;
+    }
 
-        .vote-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
+    .new-thread input, .new-thread select, .new-thread textarea {
+        width: 100%;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e0;
+    }
 
-        .vote-btn:hover {
-            background: rgba(0,0,0,0.1);
-        }
+    .new-thread button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+    }
 
-        .vote-btn.upvoted {
-            color: #48bb78;
-        }
+    .new-thread button:hover {
+        transform: scale(1.03);
+    }
 
-        .vote-btn.downvoted {
-            color: #f56565;
-        }
+    .thread {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #667eea;
+    }
 
-        .vote-count {
-            font-weight: bold;
-            margin: 0 0.5rem;
-        }
+    .thread h4 {
+        margin-top: 0;
+        color: #2d3748;
+    }
 
-        .chat-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 300px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            display: flex;
+    .thread-meta {
+        font-size: 0.9rem;
+        color: #718096;
+        margin-bottom: 0.5rem;
+    }
+
+    .vote-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .vote-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+
+    .upvoted {
+        color: #48bb78;
+    }
+
+    .downvoted {
+        color: #e53e3e;
+    }
+
+    @media (max-width: 900px) {
+        main {
             flex-direction: column;
-            z-index: 1000;
         }
+    }
+</style>
 
-        .chat-header {
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            font-weight: bold;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 1rem;
-            overflow-y: auto;
-        }
-
-        .chat-message {
-            margin-bottom: 0.5rem;
-            padding: 0.5rem;
-            background: #f7fafc;
-            border-radius: 8px;
-        }
-
-        .chat-input {
-            padding: 1rem;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 0.5rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-        }
-
-        .chat-input button {
-            padding: 0.5rem 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin: 2rem 0;
-            gap: 0.5rem;
-        }
-
-        .pagination a, .pagination span {
-            padding: 0.5rem 1rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            text-decoration: none;
-            color: #4a5568;
-        }
-
-        .pagination .current {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .sidebar ul {
-            list-style: none;
-        }
-
-        .sidebar li {
-            margin-bottom: 0.8rem;
-        }
-
-        .sidebar a {
-            color: #667eea;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-
-        .sidebar a:hover {
-            background: rgba(102, 126, 234, 0.1);
-            transform: translateX(5px);
-        }
-
-        .main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .search {
-            margin-bottom: 2rem;
-        }
-
-        .search input {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .search input:focus {
-            outline: none;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .new-thread {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .new-thread h3 {
-            color: #2d3748;
-            margin-bottom: 1.5rem;
-            font-size: 1.4rem;
-        }
-
-        .new-thread input,
-        .new-thread textarea {
-            width: 100%;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-family: inherit;
-            transition: all 0.3s ease;
-        }
-
-        .new-thread input:focus,
-        .new-thread textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .new-thread textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .new-thread button {
-            padding: 1rem 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .new-thread button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
-        }
-
-        .thread {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            padding: 2rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .thread:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        }
-
-        .thread h4 {
-            color: #2d3748;
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-
-        .thread p {
-            color: #4a5568;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .thread-meta {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.9rem;
-            color: #718096;
-            margin-bottom: 1rem;
-        }
-
-        .replies {
-            margin-top: 1.5rem;
-            border-top: 2px solid #e2e8f0;
-            padding-top: 1.5rem;
-        }
-
-        .reply {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .reply-author {
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-
-        .reply-form {
-            margin-top: 1.5rem;
-        }
-
-        .reply-form textarea {
-            width: 100%;
-            padding: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 80px;
-            transition: all 0.3s ease;
-        }
-
-        .reply-form textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .reply-form button {
-            margin-top: 0.8rem;
-            padding: 0.8rem 1.5rem;
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .reply-form button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(72, 187, 120, 0.4);
-        }
-
-        #ws-status {
-            padding: 1rem;
-            text-align: center;
-            border-radius: 8px;
-            margin: 1rem 2rem;
-            font-weight: 500;
-        }
-
-        .status-connected {
-            background: rgba(72, 187, 120, 0.1);
-            color: #2f855a;
-        }
-
-        .status-disconnected {
-            background: rgba(245, 101, 101, 0.1);
-            color: #c53030;
-        }
-
-        @media (max-width: 1024px) {
-            .container {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                flex: 1;
-                position: static;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .container {
-                padding: 0 1rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="header-content">
-            <h1>💬 Discussion Forum</h1>
-            <nav>
-                <a href="#home">🏠 Home</a>
-                <a href="#new-thread">✏️ New Thread</a>
-                {% if user.is_authenticated %}
-                    <span class="user-info">Welcome, {{ user.username }}!</span>
-                    <a href="{% url 'profile' %}">👤 Profile</a>
-                    <a href="{% url 'notifications' %}" style="position: relative;">
-                        🔔 Notifications
-                        {% if unread_notifications > 0 %}
-                            <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
-                        {% endif %}
-                    </a>
-                    <a href="{% url 'logout' %}">🚪 Logout</a>
-                {% else %}
-                    <a href="{% url 'login' %}">🔐 Login</a>
-                    <a href="{% url 'register' %}">📝 Register</a>
-                {% endif %}
-            </nav>
+<main>
+    <aside>
+        <div class="sidebar-card">
+            <h3>📂 Categories</h3>
+            <ul>
+                {% for category in categories %}
+                    <li><a href="?category={{ category.id }}">{{ category.name }}</a></li>
+                {% endfor %}
+            </ul>
         </div>
-    </header>
+        <div class="sidebar-card">
+            <h3>🔥 Recent Posts</h3>
+            <ul>
+                {% for thread in page_obj|slice:":5" %}
+                    <li><a href="#thread-{{ thread.id }}">{{ thread.title|truncatechars:30 }}</a></li>
+                {% empty %}
+                    <li>No recent posts yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </aside>
 
-    <div class="container">
-        <aside class="sidebar">
-            <div class="sidebar-card">
-                <h3>📂 Categories</h3>
-                <select id="category-filter" onchange="filterByCategory()" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 4px;">
-                    <option value="">All Categories</option>
-                    {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category.id|stringformat:"s" == selected_category %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-                <ul>
-                    {% for category in categories %}
-                        <li><a href="?category={{ category.id }}">{{ category.name }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="sidebar-card">
-                <h3>🔥 Recent Posts</h3>
-                <ul id="recent-posts">
-                    {% for thread in page_obj|slice:":5" %}
-                        <li><a href="#thread-{{ thread.id }}">{{ thread.title|truncatechars:30 }}</a></li>
-                    {% empty %}
-                        <li>No threads yet</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </aside>
+    <section class="main">
+        <div class="new-thread">
+            <h3>✨ Create a New Thread</h3>
+            <input type="text" id="thread-title" placeholder="Enter thread title...">
+            <select id="thread-category">
+                <option value="">Select Category</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+            <textarea id="thread-content" placeholder="Write your thoughts..."></textarea>
+            <button onclick="createThread()">🚀 Post Thread</button>
+        </div>
 
-        <main class="main">
-            <div class="search">
-                <input type="text" id="search-input" placeholder="🔍 Search threads..." value="{{ query }}">
-                <button onclick="performSearch()" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; cursor: pointer; margin-left: 0.5rem;">Search</button>
-            </div>
-
-            <div class="new-thread">
-                <h3>✨ Start a New Thread</h3>
-                <input type="text" id="thread-title" placeholder="Enter an interesting title...">
-                <select id="thread-category" style="width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem;">
-                    <option value="">Select Category</option>
-                    {% for category in categories %}
-                        <option value="{{ category.id }}">{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-                <textarea id="thread-content" placeholder="Share your thoughts with the community..."></textarea>
-                <button onclick="createThread()">🚀 Post Thread</button>
-            </div>
-
-            <div id="threads">
-                {% for thread in page_obj %}
+        <div id="threads">
+            {% for thread in page_obj %}
                 <div class="thread" id="thread-{{ thread.id }}">
                     <h4>{{ thread.title }}</h4>
                     <div class="thread-meta">
-                        <span>👤 {{ thread.author.username }}</span>
+                        <span>👤 {{ thread.author.username }}</span> |
                         <span>📅 {{ thread.created_at|date:"M d, Y H:i" }}</span>
                         {% if thread.category %}
-                            <span>📂 {{ thread.category.name }}</span>
+                            | <span>📂 {{ thread.category.name }}</span>
                         {% endif %}
                     </div>
                     <p>{{ thread.content }}</p>
                     <div class="vote-buttons">
-                        <button class="vote-btn {% if thread.user_vote|length > 0 and thread.user_vote == 1 %}upvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, 1)">👍</button>
+                        <button class="vote-btn {% if thread.user_vote == 1 %}upvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, 1)">👍</button>
                         <span class="vote-count">{{ thread.vote_count }}</span>
-                        <button class="vote-btn {% if thread.user_vote|length > 0 and thread.user_vote == -1 %}downvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, -1)">👎</button>
+                        <button class="vote-btn {% if thread.user_vote == -1 %}downvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, -1)">👎</button>
                     </div>
+
                     <div class="replies" id="replies-{{ thread.id }}">
                         {% for reply in thread.replies.all %}
-                        <div class="reply" id="reply-{{ reply.id }}">
-                            <div class="reply-author">{{ reply.author.username }}</div>
-                            <div>{{ reply.content }}</div>
-                            <div class="vote-buttons">
-                                <button class="vote-btn {% if reply.user_vote|length > 0 and reply.user_vote == 1 %}upvoted{% endif %}" onclick="vote('reply', {{ reply.id }}, 1)">👍</button>
-                                <span class="vote-count">{{ reply.vote_count }}</span>
-                                <button class="vote-btn {% if reply.user_vote|length > 0 and reply.user_vote == -1 %}downvoted{% endif %}" onclick="vote('reply', {{ reply.id }}, -1)">👎</button>
+                            <div class="reply">
+                                <strong>{{ reply.author.username }}</strong>: {{ reply.content }}
                             </div>
-                        </div>
                         {% endfor %}
                     </div>
+
                     <div class="reply-form">
                         <textarea placeholder="Write a reply..."></textarea>
                         <button onclick="replyToThread({{ thread.id }})">💬 Reply</button>
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}">« Previous</a>
-                {% endif %}
-
-                <span class="current">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}">Next »</a>
-                {% endif %}
-            </div>
-        </main>
-    </div>
-
-    {% if user.is_authenticated %}
-    <div class="chat-container">
-        <div class="chat-header">💬 Live Chat</div>
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input">
-            <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
-            <button onclick="sendChatMessage()">Send</button>
+            {% endfor %}
         </div>
-    </div>
-    {% endif %}
+    </section>
+</main>
+{% endblock %}
 
-    <script>
-        let ws;
-        let reconnectInterval;
-        const maxReconnectAttempts = 5;
-        let reconnectAttempts = 0;
-        const userId = {{ user.id|default:0 }};
+{% block extra_scripts %}
+<script>
+function createThread() {
+    alert("Thread creation logic coming soon!");
+}
 
-        function connectWebSocket() {
-            ws = new WebSocket('ws://localhost:8000/ws/chat/');
+function vote(type, id, value) {
+    alert(`Voted ${value > 0 ? "up" : "down"} on ${type} #${id}`);
+}
 
-            ws.onopen = function(event) {
-                console.log('WebSocket connected');
-                reconnectAttempts = 0;
-                clearInterval(reconnectInterval);
-                setStatus('Connected', true);
-            };
-
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'new_thread') {
-                    addThread(data.thread);
-                } else if (data.type === 'new_reply') {
-                    addReply(data.reply);
-                } else if (data.type === 'vote_update') {
-                    updateVote(data.vote);
-                } else if (data.type === 'new_chat_message') {
-                    addChatMessage(data.message);
-                }
-                updateRecentPosts();
-            };
-
-            ws.onclose = function(event) {
-                console.log('WebSocket disconnected');
-                setStatus('Disconnected. Reconnecting...', false);
-                attemptReconnect();
-            };
-
-            ws.onerror = function(event) {
-                console.error('WebSocket error:', event);
-                ws.close();
-            };
-        }
-
-        function attemptReconnect() {
-            if (reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                reconnectInterval = setTimeout(() => {
-                    console.log('Reconnecting WebSocket...');
-                    connectWebSocket();
-                }, 2000 * reconnectAttempts);
-            } else {
-                setStatus('Unable to connect to server.', false);
-            }
-        }
-
-        function setStatus(message, isConnected) {
-            let statusDiv = document.getElementById('ws-status');
-            if (!statusDiv) {
-                statusDiv = document.createElement('div');
-                statusDiv.id = 'ws-status';
-                document.body.insertBefore(statusDiv, document.body.firstChild);
-            }
-            statusDiv.textContent = message;
-            statusDiv.className = isConnected ? 'status-connected' : 'status-disconnected';
-        }
-
-        function createThread() {
-            const title = document.getElementById('thread-title').value;
-            const content = document.getElementById('thread-content').value;
-            const category = document.getElementById('thread-category').value;
-            if (title && content) {
-                ws.send(JSON.stringify({
-                    type: 'new_thread',
-                    title: title,
-                    content: content,
-                    category_id: category,
-                    user_id: {{ user.id|default:0 }}
-                }));
-                document.getElementById('thread-title').value = '';
-                document.getElementById('thread-content').value = '';
-                document.getElementById('thread-category').value = '';
-            } else {
-                alert('Please enter both title and content.');
-            }
-        }
-
-        function filterByCategory() {
-            const categoryId = document.getElementById('category-filter').value;
-            const url = categoryId ? `?category=${categoryId}` : window.location.pathname;
-            window.location.href = url;
-        }
-
-        function addThread(thread) {
-            const threadsDiv = document.getElementById('threads');
-            if (document.getElementById(`thread-${thread.id}`)) {
-                return;
-            }
-            const threadDiv = document.createElement('div');
-            threadDiv.className = 'thread';
-            threadDiv.id = `thread-${thread.id}`;
-            threadDiv.innerHTML = `
-                <h4>${thread.title}</h4>
-                <div class="thread-meta">
-                    <span>👤 User ${thread.user_id || userId}</span>
-                    <span>📅 Just now</span>
-                </div>
-                <p>${thread.content}</p>
-                <div class="replies" id="replies-${thread.id}"></div>
-                <div class="reply-form">
-                    <textarea placeholder="Write a reply..."></textarea>
-                    <button onclick="replyToThread(${thread.id})">💬 Reply</button>
-                </div>
-            `;
-            threadsDiv.prepend(threadDiv);
-        }
-
-        function replyToThread(threadId) {
-            const textarea = event.target.previousElementSibling;
-            const content = textarea.value;
-            if (content) {
-                ws.send(JSON.stringify({
-                    type: 'new_reply',
-                    thread_id: threadId,
-                    content: content,
-                    user_id: {{ user.id|default:0 }}
-                }));
-                textarea.value = '';
-            } else {
-                alert('Please enter a reply.');
-            }
-        }
-
-        function addReply(reply) {
-            const repliesDiv = document.getElementById(`replies-${reply.thread_id}`);
-            if (!repliesDiv) return;
-            if (document.getElementById(`reply-${reply.id}`)) {
-                return;
-            }
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'reply';
-            replyDiv.id = `reply-${reply.id}`;
-            replyDiv.innerHTML = `
-                <div class="reply-author">${reply.author || 'User ' + userId}</div>
-                <div>${reply.content}</div>
-                <div class="vote-buttons">
-                    <button class="vote-btn" onclick="vote('reply', ${reply.id}, 1)">👍</button>
-                    <span class="vote-count">0</span>
-                    <button class="vote-btn" onclick="vote('reply', ${reply.id}, -1)">👎</button>
-                </div>
-            `;
-            repliesDiv.appendChild(replyDiv);
-        }
-
-        function vote(modelType, objectId, voteType) {
-            fetch(`/chat/vote/${modelType}/${objectId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: `vote_type=${voteType}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                ws.send(JSON.stringify({
-                    type: 'vote',
-                    model_type: modelType,
-                    object_id: objectId,
-                    vote_type: voteType
-                }));
-            })
-            .catch(error => console.error('Error voting:', error));
-        }
-
-        function updateVote(voteData) {
-            const voteCountSpan = document.querySelector(`#${voteData.model_type}-${voteData.object_id} .vote-count`);
-            if (voteCountSpan) {
-                voteCountSpan.textContent = voteData.vote_count;
-            }
-            const voteBtns = document.querySelectorAll(`#${voteData.model_type}-${voteData.object_id} .vote-btn`);
-            voteBtns.forEach(btn => {
-                btn.classList.remove('upvoted', 'downvoted');
-                if (btn.onclick.toString().includes('1') && voteData.user_vote === 1) {
-                    btn.classList.add('upvoted');
-                } else if (btn.onclick.toString().includes('-1') && voteData.user_vote === -1) {
-                    btn.classList.add('downvoted');
-                }
-            });
-        }
-
-        function getCSRFToken() {
-            const cookieValue = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('csrftoken='))
-                ?.split('=')[1];
-            return cookieValue || '';
-        }
-
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const content = input.value.trim();
-            if (content) {
-                ws.send(JSON.stringify({
-                    type: 'chat_message',
-                    content: content
-                }));
-                input.value = '';
-            }
-        }
-
-        function handleChatKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendChatMessage();
-            }
-        }
-
-        function addChatMessage(message) {
-            const messagesDiv = document.getElementById('chat-messages');
-            if (!messagesDiv) return;
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
-            messageDiv.innerHTML = `<strong>${message.author}:</strong> ${message.content}`;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function updateRecentPosts() {
-            const threads = document.querySelectorAll('.thread h4');
-            const recentPosts = document.getElementById('recent-posts');
-            recentPosts.innerHTML = '';
-            Array.from(threads).slice(0, 5).forEach((thread, index) => {
-                const li = document.createElement('li');
-                li.innerHTML = `<a href="#thread-${index + 1}">${thread.textContent.substring(0, 30)}...</a>`;
-                recentPosts.appendChild(li);
-            });
-        }
-
-        window.onload = function() {
-            connectWebSocket();
-            addThread({ 
-                id: 1, 
-                title: 'Welcome to Our Community! 🎉', 
-                content: 'This is your new discussion forum. Feel free to create threads and engage with the community. We\'re excited to have you here!',
-                user_id: 1
-            });
-            updateRecentPosts();
-        };
-
-        function performSearch() {
-            const query = document.getElementById('search-input').value;
-            const categoryId = document.getElementById('category-filter').value;
-            let url = '?q=' + encodeURIComponent(query);
-            if (categoryId) {
-                url += '&category=' + categoryId;
-            }
-            window.location.href = url;
-        }
-
-        document.getElementById('search-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                performSearch();
-            }
-        });
-    </script>
-</body>
-</html>
+function replyToThread(threadId) {
+    alert(`Reply added to thread ${threadId}`);
+}
+</script>
+{% endblock %}

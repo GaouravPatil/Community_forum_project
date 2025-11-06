@@ -1,18 +1,47 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth import login
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.contrib.contenttypes.models import ContentType
 import json
 
-from .models import Thread, Reply, Vote, ChatMessage, UserProfile, Category, Notification
+from .models import (
+    Category, Thread, Reply, Vote, ChatMessage,
+    UserProfile, Notification
+)
 from .forms import ThreadForm, ReplyForm, UserProfileForm
-from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponseBadRequest
+
+from django.shortcuts import render, get_object_or_404
+from .models import Category, Thread, Notification
+from django.core.paginator import Paginator
+
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    threads = Thread.objects.filter(category=category).order_by('-created_at')
+
+    paginator = Paginator(threads, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    unread_notifications = 0
+    if request.user.is_authenticated:
+        unread_notifications = Notification.objects.filter(
+            user=request.user, is_read=False
+        ).count()
+
+    return render(request, 'category_detail.html', {
+        'category': category,
+        'page_obj': page_obj,
+        'unread_notifications': unread_notifications,
+    })
+
 
 def index(request):
     query = request.GET.get('q', '')
@@ -30,22 +59,34 @@ def index(request):
     if category_id:
         threads = threads.filter(category_id=category_id)
 
-    paginator = Paginator(threads, 10)  # Show 10 threads per page
+    paginator = Paginator(threads, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     categories = Category.objects.all()
     unread_notifications = 0
     if request.user.is_authenticated:
-        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+        unread_notifications = Notification.objects.filter(
+            user=request.user, is_read=False
+        ).count()
 
     return render(request, 'index.html', {
         'page_obj': page_obj,
         'categories': categories,
         'query': query,
         'selected_category': category_id,
-        'unread_notifications': unread_notifications
+        'unread_notifications': unread_notifications,
     })
+
+
+
+def contact(request):
+    return render(request, 'contact.html')
+
+def about(request):
+    return render(request, 'about.html')
+
+
 
 @csrf_exempt
 @login_required
@@ -61,9 +102,10 @@ def create_thread(request):
             'id': thread.id,
             'title': thread.title,
             'content': thread.content,
-            'type': 'new_thread'
+            'type': 'new_thread',
         })
     return JsonResponse({'error': 'Invalid form'}, status=400)
+
 
 @csrf_exempt
 @login_required
@@ -78,29 +120,30 @@ def create_reply(request, thread_id):
         reply.author = request.user
         reply.save()
 
-        # Create notification for thread author if not the same user
+
         if thread.author != request.user:
             Notification.objects.create(
                 user=thread.author,
                 message=f"{request.user.username} replied to your thread '{thread.title}'",
                 thread=thread,
-                reply=reply
+                reply=reply,
             )
 
         return JsonResponse({
             'id': reply.id,
             'content': reply.content,
             'thread_id': thread_id,
-            'type': 'new_reply'
+            'type': 'new_reply',
         })
     return JsonResponse({'error': 'Invalid form'}, status=400)
+
+
 
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            # Create UserProfile for the new user
             UserProfile.objects.create(user=user)
             messages.success(request, 'Account created successfully! Please log in.')
             return redirect('login')
@@ -125,6 +168,29 @@ def notifications(request):
         return JsonResponse({'notifications': data})
 
     return render(request, 'notifications.html', {'notifications': notifications})
+
+
+
+
+@login_required
+def login_view(request):
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+
+            # Handle "Remember Me"
+            if not request.POST.get('remember_me'):
+                request.session.set_expiry(0)
+            else:
+                request.session.set_expiry(60 * 60 * 24 * 30)
+
+            return redirect('home')
+    else:
+        form = AuthenticationForm()
+
+    return render(request, "forum/login.html", {"form": form})
 
 
 
@@ -160,12 +226,50 @@ def vote(request, model_type, object_id):
 
     if not created:
         if vote_obj.vote_type == vote_type:
-            vote_obj.delete()  # Remove vote if same type clicked again
+            vote_obj.delete()
         else:
             vote_obj.vote_type = vote_type
             vote_obj.save()
 
-    return JsonResponse({'vote_count': obj.vote_count(), 'user_vote': obj.user_vote(request.user)})
+    return JsonResponse({
+        'vote_count': obj.vote_count(),
+        'user_vote': obj.user_vote(request.user),
+    })
+
+
+
+@login_required
+def profile(request):
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=user_profile)
+
+    return render(request, 'profile.html', {
+        'form': form,
+        'user_profile': user_profile,
+    })
+
+
+
+@login_required
+def notifications(request):
+    notifications = Notification.objects.filter(
+        user=request.user
+    ).order_by('-created_at')
+
+    if request.method == 'POST':
+        notifications.update(is_read=True)
+        return JsonResponse({'status': 'success'})
+
+    return render(request, 'notifications.html', {'notifications': notifications})
+
+
 
 @login_required
 def send_chat_message(request):
@@ -182,36 +286,28 @@ def send_chat_message(request):
         'content': message.content,
         'author': message.author.username,
         'created_at': message.created_at.isoformat(),
-        'type': 'new_chat_message'
+        'type': 'new_chat_message',
     })
 
-@login_required
-def profile(request):
-    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
-    else:
-        form = UserProfileForm(instance=user_profile)
 
-    return render(request, 'profile.html', {'form': form, 'user_profile': user_profile})
 
 @login_required
-def notifications(request):
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    if request.method == 'POST':
-        # Mark all as read
-        notifications.update(is_read=True)
-        return JsonResponse({'status': 'success'})
+def request_access(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+    send_mail(
+        subject=f"Access Request for {category.name}",
+        message=f"User {request.user.username} requested access to '{category.name}'.",
+        from_email='no-reply@forum.com',
+        recipient_list=['admin@forum.com'],
+    )
+    return render(request, 'forum/access_requested.html', {'category': category})
 
-    return render(request, 'notifications.html', {'notifications': notifications})
+
 
 def search(request):
     query = request.GET.get('q', '')
     category_id = request.GET.get('category', '')
+
     threads = Thread.objects.all().order_by('-created_at')
 
     if query:
@@ -225,7 +321,7 @@ def search(request):
         threads = threads.filter(category_id=category_id)
 
     threads_data = []
-    for thread in threads[:20]:  # Limit to 20 results
+    for thread in threads[:20]: 
         threads_data.append({
             'id': thread.id,
             'title': thread.title,
