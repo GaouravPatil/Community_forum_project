@@ -1,3 +1,5 @@
+from collections import UserDict, UserList
+from datetime import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -9,8 +11,8 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 import json
-
-from .models import Thread, Reply, Vote, ChatMessage, UserProfile, Category, Notification
+import uuid
+from .models import CallHistory, GroupVideoCall, Thread, Reply, VideoCall, Vote, ChatMessage, UserProfile, Category, Notification
 from .forms import ThreadForm, ReplyForm, UserProfileForm
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest
@@ -254,3 +256,125 @@ def search(request):
         })
 
     return JsonResponse({'threads': threads_data})
+
+@login_required
+def initiate_video_call(request, user_id):
+    """Initiate a 1-on-1 video call"""
+    try:
+        receiver = UserDict.objects.get(id=user_id)
+        call = VideoCall.objects.create(
+            caller=request.user,
+            receiver=receiver,
+            status='ringing'
+        )
+        return JsonResponse({
+            'success': True,
+            'call_id': call.id,
+            'receiver_username': receiver.username,
+        })
+    except UserList.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+
+
+@login_required
+def accept_video_call(request, call_id):
+    """Accept an incoming video call"""
+    try:
+        call = VideoCall.objects.get(id=call_id, receiver=request.user)
+        call.status = 'active'
+        call.start_time = timezone.now()
+        call.save()
+        return JsonResponse({'success': True, 'call_id': call.id})
+    except VideoCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Call not found'}, status=404)
+
+
+@login_required
+def reject_video_call(request, call_id):
+    """Reject an incoming video call"""
+    try:
+        call = VideoCall.objects.get(id=call_id, receiver=request.user)
+        call.status = 'missed'
+        call.save()
+        return JsonResponse({'success': True})
+    except VideoCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Call not found'}, status=404)
+
+
+@login_required
+def end_video_call(request, call_id):
+    """End an active video call"""
+    try:
+        call = VideoCall.objects.get(id=call_id)
+        if call.caller == request.user or call.receiver == request.user:
+            call.status = 'ended'
+            call.end_time = timezone.now()
+            call.save()
+            return JsonResponse({'success': True})
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+    except VideoCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Call not found'}, status=404)
+
+
+@login_required
+def create_group_call(request):
+    """Create a new group video call"""
+    if request.method != 'POST':
+        return HttpResponseBadRequest('Only POST method allowed')
+    
+    data = json.loads(request.body)
+    title = data.get('title', 'Group Call')
+    description = data.get('description', '')
+    max_participants = data.get('max_participants', 10)
+    start_time = data.get('start_time')
+    
+    room_id = str(uuid.uuid4())[:12]
+    
+    group_call = GroupVideoCall.objects.create(
+        initiator=request.user,
+        title=title,
+        description=description,
+        max_participants=max_participants,
+        start_time=timezone.now() if not start_time else start_time,
+        room_id=room_id,
+        status='active'
+    )
+    group_call.participants.add(request.user)
+    
+    return JsonResponse({
+        'success': True,
+        'room_id': room_id,
+        'group_call_id': group_call.id,
+        'title': title,
+    })
+
+
+@login_required
+def join_group_call(request, room_id):
+    """Join an existing group video call"""
+    try:
+        group_call = GroupVideoCall.objects.get(room_id=room_id)
+        if group_call.participants.count() < group_call.max_participants:
+            group_call.participants.add(request.user)
+            return JsonResponse({
+                'success': True,
+                'room_id': room_id,
+                'group_call_id': group_call.id,
+                'title': group_call.title,
+            })
+        return JsonResponse({'success': False, 'error': 'Group call is full'}, status=400)
+    except GroupVideoCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Group call not found'}, status=404)
+
+
+@login_required
+def get_call_history(request):
+    """Get user's call history"""
+    history = CallHistory.objects.filter(user=request.user).order_by('-call_date')[:50]
+    data = [{
+        'id': h.id,
+        'duration': h.duration,
+        'call_date': h.call_date.strftime('%Y-%m-%d %H:%M'),
+        'call_type': 'group' if h.group_call else 'video',
+    } for h in history]
+    return JsonResponse({'call_history': data})

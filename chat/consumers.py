@@ -5,6 +5,9 @@ from channels.auth import get_user
 from chat.models import Thread, Reply, Vote, ChatMessage
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from .models import VideoCall, GroupVideoCall
+from django.utils import timezone
+from datetime import timedelta
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -240,3 +243,250 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'new_notification',
             'notification': event['notification']
         }))
+
+class VideoCallConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = await get_user(self.scope)
+        self.call_id = self.scope['url_route']['kwargs'].get('call_id')
+        self.room_group_name = f'video_call_{self.call_id}'
+        
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        
+        # Notify others that user joined
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_joined',
+                'username': self.user.username,
+                'user_id': self.user.id,
+            }
+        )
+    
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_left',
+                'username': self.user.username,
+                'user_id': self.user.id,
+            }
+        )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get('type')
+        
+        if message_type == 'offer':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'offer_message',
+                    'from_user': self.user.id,
+                    'offer': data.get('offer'),
+                }
+            )
+        elif message_type == 'answer':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'answer_message',
+                    'from_user': self.user.id,
+                    'answer': data.get('answer'),
+                }
+            )
+        elif message_type == 'ice_candidate':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'ice_candidate_message',
+                    'from_user': self.user.id,
+                    'candidate': data.get('candidate'),
+                }
+            )
+        elif message_type == 'call_end':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'call_ended',
+                    'from_user': self.user.id,
+                }
+            )
+            await self.end_video_call()
+    
+    async def user_joined(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_joined',
+            'username': event['username'],
+            'user_id': event['user_id'],
+        }))
+    
+    async def user_left(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_left',
+            'username': event['username'],
+            'user_id': event['user_id'],
+        }))
+    
+    async def offer_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'offer',
+            'from_user': event['from_user'],
+            'offer': event['offer'],
+        }))
+    
+    async def answer_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'answer',
+            'from_user': event['from_user'],
+            'answer': event['answer'],
+        }))
+    
+    async def ice_candidate_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'ice_candidate',
+            'from_user': event['from_user'],
+            'candidate': event['candidate'],
+        }))
+    
+    async def call_ended(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'call_ended',
+            'from_user': event['from_user'],
+        }))
+    
+    @database_sync_to_async
+    def end_video_call(self):
+        try:
+            call = VideoCall.objects.get(id=self.call_id)
+            call.status = 'ended'
+            call.end_time = timezone.now()
+            call.save()
+        except VideoCall.DoesNotExist:
+            pass
+
+
+class GroupVideoCallConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = await get_user(self.scope)
+        self.room_id = self.scope['url_route']['kwargs'].get('room_id')
+        self.room_group_name = f'group_video_call_{self.room_id}'
+        
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_joined_group',
+                'username': self.user.username,
+                'user_id': self.user.id,
+            }
+        )
+    
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_left_group',
+                'username': self.user.username,
+                'user_id': self.user.id,
+            }
+        )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get('type')
+        
+        if message_type == 'offer':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'group_offer',
+                    'from_user': self.user.id,
+                    'to_user': data.get('to_user'),
+                    'offer': data.get('offer'),
+                }
+            )
+        elif message_type == 'answer':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'group_answer',
+                    'from_user': self.user.id,
+                    'to_user': data.get('to_user'),
+                    'answer': data.get('answer'),
+                }
+            )
+        elif message_type == 'ice_candidate':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'group_ice_candidate',
+                    'from_user': self.user.id,
+                    'to_user': data.get('to_user'),
+                    'candidate': data.get('candidate'),
+                }
+            )
+    
+    async def user_joined_group(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_joined',
+            'username': event['username'],
+            'user_id': event['user_id'],
+        }))
+    
+    async def user_left_group(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_left',
+            'username': event['username'],
+            'user_id': event['user_id'],
+        }))
+    
+    async def group_offer(self, event):
+        if event['to_user'] == self.user.id or event['to_user'] is None:
+            await self.send(text_data=json.dumps({
+                'type': 'offer',
+                'from_user': event['from_user'],
+                'offer': event['offer'],
+            }))
+    
+    async def group_answer(self, event):
+        if event['to_user'] == self.user.id:
+            await self.send(text_data=json.dumps({
+                'type': 'answer',
+                'from_user': event['from_user'],
+                'answer': event['answer'],
+            }))
+    
+    async def group_ice_candidate(self, event):
+        if event['to_user'] == self.user.id or event['to_user'] is None:
+            await self.send(text_data=json.dumps({
+                'type': 'ice_candidate',
+                'from_user': event['from_user'],
+                'candidate': event['candidate'],
+            }))
