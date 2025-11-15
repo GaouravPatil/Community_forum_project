@@ -261,7 +261,7 @@ def search(request):
 def initiate_video_call(request, user_id):
     """Initiate a 1-on-1 video call"""
     try:
-        receiver = UserDict.objects.get(id=user_id)
+        receiver = User.objects.get(id=user_id)
         call = VideoCall.objects.create(
             caller=request.user,
             receiver=receiver,
@@ -272,7 +272,7 @@ def initiate_video_call(request, user_id):
             'call_id': call.id,
             'receiver_username': receiver.username,
         })
-    except UserList.DoesNotExist:
+    except User.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
 
 

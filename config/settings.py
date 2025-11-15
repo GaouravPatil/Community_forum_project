@@ -52,7 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'project.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -69,9 +69,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'project.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
-ASGI_APPLICATION = 'project.asgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 CHANNEL_LAYERS = {
@@ -137,6 +137,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Media files (for user avatars)
 MEDIA_URL = '/media/'
