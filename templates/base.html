@@ -107,6 +107,35 @@
             color: #5a67d8;
         }
 
+        /* Additional animations */
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .slideIn {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .bounce {
+            animation: bounce 1s ease-in-out;
+        }
+
+        .rotate {
+            animation: rotate 2s linear infinite;
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -131,7 +160,7 @@
     <script>
     async function fetchNotifications() {
         try {
-            const response = await fetch("{% url 'notifications' %}", {
+            const response = await fetch("{% url 'notifications_list' %}", {
                 headers: { "X-Requested-With": "XMLHttpRequest" }
             });
             const data = await response.json();
@@ -214,21 +243,13 @@
             </nav> {% endcomment %}
 
             <nav>
-    <a href="{% url 'index' %}">🏠 Home</a>
+    <a href="{% url 'home' %}">🏠 Home</a>
     <a href="{% url 'about' %}">About</a>
-    <a href="{% url 'profile' %}">👤 Profile</a>
-
     {% if user.is_authenticated %}
-        <span class="user-info">Welcome, {{ user.username }}!</span>
-        <a href="{% url 'notifications' %}" style="position: relative;">
-            🔔 Notifications
-            {% if unread_notifications > 0 %}
-                <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
-            {% endif %}
-        </a>
-        <a href="{% url 'logout' %}">🚪 Logout</a>
+        <a href="{% url 'profile' %}">👤 Profile</a>
+        <a href="{% url 'user_logout' %}">🚪 Logout</a>
     {% else %}
-        <a href="{% url 'login' %}">🔐 Login</a>
+        <a href="{% url 'user_login' %}">🔐 Login</a>
         <a href="{% url 'register' %}">📝 Register</a>
     {% endif %}
 </nav>

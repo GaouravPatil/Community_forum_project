@@ -326,6 +326,24 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
                 }
             )
             await self.end_video_call()
+        elif message_type == 'call_reject':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'call_rejected',
+                    'from_user': self.user.id,
+                }
+            )
+            await self.reject_video_call()
+        elif message_type == 'call_accept':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'call_accepted',
+                    'from_user': self.user.id,
+                }
+            )
+            await self.accept_video_call()
 
     async def user_joined(self, event):
         await self.send(text_data=json.dumps({
@@ -368,12 +386,42 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
             'from_user': event['from_user'],
         }))
 
+    async def call_rejected(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'call_rejected',
+            'from_user': event['from_user'],
+        }))
+
+    async def call_accepted(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'call_accepted',
+            'from_user': event['from_user'],
+        }))
+
     @database_sync_to_async
     def end_video_call(self):
         try:
             call = VideoCall.objects.get(id=self.call_id)
             call.status = 'ended'
             call.end_time = timezone.now()
+            call.save()
+        except VideoCall.DoesNotExist:
+            pass
+
+    @database_sync_to_async
+    def reject_video_call(self):
+        try:
+            call = VideoCall.objects.get(id=self.call_id)
+            call.status = 'rejected'
+            call.save()
+        except VideoCall.DoesNotExist:
+            pass
+
+    @database_sync_to_async
+    def accept_video_call(self):
+        try:
+            call = VideoCall.objects.get(id=self.call_id)
+            call.status = 'accepted'
             call.save()
         except VideoCall.DoesNotExist:
             pass

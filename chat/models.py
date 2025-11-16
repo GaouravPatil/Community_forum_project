@@ -4,10 +4,10 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    bio = models.TextField(blank=True, max_length=500)
-    location = models.CharField(max_length=100, blank=True)
+    bio = models.TextField(blank=True)
+    location = models.CharField(max_length=255, blank=True)
     join_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

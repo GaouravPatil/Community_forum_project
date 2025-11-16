@@ -23,7 +23,11 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', RedirectView.as_view(url='/chat/')),
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('chat/', include('chat.urls')),
+    # path('', include('forum.urls')),
+    # path('', include('community_forum.urls')),
+
 ]
 
 if settings.DEBUG:

@@ -1,224 +1,134 @@
 {% extends "base.html" %}
 
-{% block title %}Video Call{% endblock %}
-
 {% block content %}
-<div class="video-call-container">
-    <div class="video-grid" id="videoGrid">
-        <div class="video-wrapper" id="localVideo">
-            <video id="localVideoElement" autoplay playsinline muted></video>
-            <span class="username">You</span>
-        </div>
-    </div>
-    
-    <div class="call-controls">
-        <button id="toggleAudio" class="control-btn" title="Toggle Audio">
-            <span>🎤</span>
-        </button>
-        <button id="toggleVideo" class="control-btn" title="Toggle Video">
-            <span>📹</span>
-        </button>
-        <button id="endCall" class="control-btn btn-danger" title="End Call">
-            <span>📞</span>
-        </button>
-        <button id="toggleScreen" class="control-btn" title="Share Screen">
-            <span>🖥️</span>
-        </button>
-    </div>
+<h3>{{ call_type|capfirst }} call — room {{ call_id }}</h3>
+<form style="display:none;">{% csrf_token %}</form>
+<div id="video-area">
+  <video id="localVideo" autoplay playsinline muted style="width:300px;height:200px;background:#000"></video>
+  <div id="remote-videos"></div>
 </div>
-
-<style>
-    .video-call-container {
-        width: 100%;
-        height: 100vh;
-        background: #000;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .video-grid {
-        flex: 1;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 10px;
-        padding: 10px;
-        background: #1a1a1a;
-    }
-    
-    .video-wrapper {
-        position: relative;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    
-    video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    .username {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0,0,0,0.7);
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 0.9rem;
-    }
-    
-    .call-controls {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        padding: 20px;
-        background: rgba(0,0,0,0.9);
-    }
-    
-    .control-btn {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: none;
-        background: #4CAF50;
-        color: white;
-        cursor: pointer;
-        font-size: 1.5rem;
-        transition: all 0.3s;
-    }
-    
-    .control-btn:hover {
-        background: #45a049;
-        transform: scale(1.1);
-    }
-    
-    .control-btn.btn-danger {
-        background: #f44336;
-    }
-    
-    .control-btn.btn-danger:hover {
-        background: #da190b;
-    }
-</style>
+<button id="endCall">End</button>
 
 <script>
-    const callId = "{{ call_id }}";
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/video-call/${callId}/`);
-    
-    let localStream;
-    let peerConnections = {};
-    const iceServers = {
-        iceServers: [
-            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
-        ]
-    };
-    
-    async function initLocalStream() {
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: true
-            });
-            document.getElementById('localVideoElement').srcObject = localStream;
-        } catch (error) {
-            console.error('Error accessing media devices:', error);
-            alert('Please allow camera and microphone access');
-        }
+const callId = "{{ call_id }}";
+const callType = "{{ call_type }}";
+const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+const socket = new WebSocket(wsProtocol + "//" + location.host + "/ws/video-call/" + callId + "/");
+
+let localStream;
+let peerConnection;
+const configuration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+socket.onopen = () => console.log('WS open');
+socket.onmessage = (ev) => {
+  const data = JSON.parse(ev.data);
+  console.log('WS msg', data);
+  handleSignalingData(data);
+};
+socket.onclose = () => console.log('WS closed');
+
+document.getElementById('endCall').addEventListener('click', async () => {
+  const resp = await fetch("{% url 'end_call' 0 %}".replace('/0/','/'+callId+'/'), {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''}
+  });
+  const j = await resp.json();
+  if (j.success) {
+    socket.send(JSON.stringify({ type: 'call_end' }));
+    window.location.href = "{% url 'chat_home' %}";
+  }
+});
+
+async function initMedia(){
+  try {
+    if (callType === 'video') {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('localVideo').srcObject = localStream;
+    } else {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      document.getElementById('localVideo').style.display = 'none';
     }
-    
-    async function createPeerConnection(userId) {
-        const peerConnection = new RTCPeerConnection(iceServers);
-        
-        localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-        });
-        
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) {
-                socket.send(JSON.stringify({
-                    type: 'ice_candidate',
-                    candidate: event.candidate,
-                }));
-            }
-        };
-        
-        peerConnection.ontrack = event => {
-            addRemoteVideo(userId, event.streams[0]);
-        };
-        
-        peerConnections[userId] = peerConnection;
-        return peerConnection;
+    initPeerConnection();
+  } catch (e) {
+    console.error('media error', e);
+    alert('Please allow camera/microphone to proceed with the call.');
+  }
+}
+
+function initPeerConnection() {
+  peerConnection = new RTCPeerConnection(configuration);
+
+  localStream.getTracks().forEach(track => {
+    peerConnection.addTrack(track, localStream);
+  });
+
+  peerConnection.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.send(JSON.stringify({
+        type: 'ice_candidate',
+        candidate: event.candidate
+      }));
     }
-    
-    function addRemoteVideo(userId, stream) {
-        let videoWrapper = document.getElementById(`video-${userId}`);
-        if (!videoWrapper) {
-            videoWrapper = document.createElement('div');
-            videoWrapper.id = `video-${userId}`;
-            videoWrapper.className = 'video-wrapper';
-            
-            const video = document.createElement('video');
-            video.autoplay = true;
-            video.playsinline = true;
-            video.srcObject = stream;
-            
-            const username = document.createElement('span');
-            username.className = 'username';
-            username.textContent = `User ${userId}`;
-            
-            videoWrapper.appendChild(video);
-            videoWrapper.appendChild(username);
-            document.getElementById('videoGrid').appendChild(videoWrapper);
-        }
+  };
+
+  peerConnection.ontrack = (event) => {
+    const remoteVideo = document.createElement('video');
+    remoteVideo.srcObject = event.streams[0];
+    remoteVideo.autoplay = true;
+    remoteVideo.playsinline = true;
+    remoteVideo.style.width = '300px';
+    remoteVideo.style.height = '200px';
+    remoteVideo.style.background = '#000';
+    document.getElementById('remote-videos').appendChild(remoteVideo);
+  };
+
+  // Create offer if caller
+  if ("{{ is_caller }}" === "True") {
+    createOffer();
+  }
+}
+
+async function createOffer() {
+  try {
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.send(JSON.stringify({
+      type: 'offer',
+      offer: offer
+    }));
+  } catch (e) {
+    console.error('Error creating offer:', e);
+  }
+}
+
+async function handleSignalingData(data) {
+  try {
+    if (data.type === 'offer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.send(JSON.stringify({
+        type: 'answer',
+        answer: answer
+      }));
+    } else if (data.type === 'answer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    } else if (data.type === 'ice_candidate') {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    } else if (data.type === 'call_ended') {
+      alert('Call ended by other participant');
+      window.location.href = "{% url 'chat_home' %}";
     }
-    
-    socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'user_joined') {
-            console.log(`User ${data.user_id} joined`);
-        } else if (data.type === 'offer') {
-            const peerConnection = await createPeerConnection(data.from_user);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.send(JSON.stringify({
-                type: 'answer',
-                answer: answer,
-            }));
-        } else if (data.type === 'answer') {
-            const peerConnection = peerConnections[data.from_user];
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-            }
-        } else if (data.type === 'ice_candidate') {
-            const peerConnection = peerConnections[data.from_user];
-            if (peerConnection && data.candidate) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-        }
-    };
-    
-    document.getElementById('toggleAudio').addEventListener('click', () => {
-        localStream.getAudioTracks().forEach(track => {
-            track.enabled = !track.enabled;
-        });
-    });
-    
-    document.getElementById('toggleVideo').addEventListener('click', () => {
-        localStream.getVideoTracks().forEach(track => {
-            track.enabled = !track.enabled;
-        });
-    });
-    
-    document.getElementById('endCall').addEventListener('click', () => {
-        socket.send(JSON.stringify({ type: 'call_end' }));
-        window.location.href = '/chat/';
-    });
-    
-    initLocalStream();
+  } catch (e) {
+    console.error('Error handling signaling data:', e);
+  }
+}
+
+initMedia();
 </script>
 {% endblock %}

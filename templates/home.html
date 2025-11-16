@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+  .user-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+    animation: slideIn 0.5s ease-out;
+  }
+
+  .user-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-call {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .btn-call:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    animation: bounce 0.6s ease;
+  }
+
+  .video-call {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  }
+
+  .audio-call {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0) scale(1); }
+    40% { transform: translateY(-5px) scale(1.05); }
+    60% { transform: translateY(-2px) scale(1.02); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ request.user.username }}</h2>
+
+<section>
+  <h3>Users</h3>
+  <ul id="user-list">
+    {% for u in users %}
+      <li data-user-id="{{ u.id }}" class="user-item">
+        {{ u.username }}
+        <button class="btn-call video-call" data-type="video" data-target="{{ u.id }}">📹 Video</button>
+        <button class="btn-call audio-call" data-type="audio" data-target="{{ u.id }}">📞 Audio</button>
+      </li>
+    {% empty %}
+      <li>No other users</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h3>Notifications</h3>
+  <ul id="notifications">
+    {% for n in notifications %}
+      <li data-id="{{ n.id }}">
+        {{ n.message }} <small>{{ n.created_at }}</small>
+        {% if not n.read %}
+          <button class="mark-read" data-id="{{ n.id }}">Mark read</button>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>No notifications</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<form style="display:none;">{% csrf_token %}</form>
+
+<script>
+async function postJSON(url, data){
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken || ''
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+document.querySelectorAll('.btn-call').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    const target = btn.dataset.target;
+    const type = btn.dataset.type;
+    const resp = await postJSON("{% url 'initiate_call' %}", { target_id: target, call_type: type });
+    if (resp.success) {
+      window.location.href = "{% url 'call_page' 0 %}".replace('/0/','/'+resp.call_id+'/');
+    } else {
+      alert(resp.error || 'Failed to initiate call');
+    }
+  });
+});
+
+document.querySelectorAll('.mark-read').forEach(b => {
+  b.addEventListener('click', async () => {
+    const id = b.dataset.id;
+    const res = await postJSON("{% url 'mark_notification_read' 0 %}".replace('/0/','/'+id+'/'), {});
+    if (res.success) {
+      b.remove();
+    }
+  });
+});
+</script>
+{% endblock %}
