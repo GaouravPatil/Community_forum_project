@@ -154,10 +154,10 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-    <!-- 🔔 Notification Popup -->
-    <div id="popup-notifications" class="popup-notifications"></div>
+<!-- 🔔 Notification Popup -->
+<div id="popup-notifications" class="popup-notifications"></div>
 
-    <script>
+<script>
     async function fetchNotifications() {
         try {
             const response = await fetch("{% url 'notifications_list' %}", {
@@ -216,10 +216,6 @@
             opacity: 0;
         }
     </style>
-</body>
-</html>
- 
-<body>
     <!-- 🌟 Navbar -->
     <header>
         <div class="header-content">
