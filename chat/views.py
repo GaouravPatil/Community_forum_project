@@ -172,8 +172,10 @@ def notifications(request):
 
 
 
-@login_required
 def login_view(request):
+    """Optional custom login view. Fixed: not protected by login_required, uses the
+    correct template and redirects to the index on success.
+    """
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
@@ -186,11 +188,12 @@ def login_view(request):
             else:
                 request.session.set_expiry(60 * 60 * 24 * 30)
 
-            return redirect('home')
+            return redirect('index')
     else:
         form = AuthenticationForm()
 
-    return render(request, "forum/login.html", {"form": form})
+    # Use the standard auth template location
+    return render(request, "registration/login.html", {"form": form})
 
 
 
