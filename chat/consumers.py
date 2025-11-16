@@ -1,13 +1,14 @@
-import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from channels.auth import get_user
-from chat.models import Thread, Reply, Vote, ChatMessage
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from .models import VideoCall, GroupVideoCall
 from django.utils import timezone
-from datetime import timedelta
+from .models import (
+    Thread, Reply, Vote, ChatMessage,
+    VideoCall, GroupVideoCall, Category, Notification
+)
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -138,7 +139,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             category = None
             if category_id:
-                from .models import Category
                 category = Category.objects.get(id=category_id)
             thread = Thread.objects.create(title=title, content=content, author=user, category=category)
             return thread
@@ -154,7 +154,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Create notification for thread author if not the same user
             if thread.author != user:
-                from .models import Notification
                 Notification.objects.create(
                     user=thread.author,
                     message=f"{user.username} replied to your thread '{thread.title}'",
@@ -244,22 +243,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'notification': event['notification']
         }))
 
+
 class VideoCallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = await get_user(self.scope)
         self.call_id = self.scope['url_route']['kwargs'].get('call_id')
         self.room_group_name = f'video_call_{self.call_id}'
-        
+
         if not self.user.is_authenticated:
             await self.close()
             return
-        
+
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
-        
+
         # Notify others that user joined
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -269,13 +269,13 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
                 'user_id': self.user.id,
             }
         )
-    
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -284,11 +284,11 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
                 'user_id': self.user.id,
             }
         )
-    
+
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
-        
+
         if message_type == 'offer':
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -325,48 +325,48 @@ class VideoCallConsumer(AsyncWebsocketConsumer):
                 }
             )
             await self.end_video_call()
-    
+
     async def user_joined(self, event):
         await self.send(text_data=json.dumps({
             'type': 'user_joined',
             'username': event['username'],
             'user_id': event['user_id'],
         }))
-    
+
     async def user_left(self, event):
         await self.send(text_data=json.dumps({
             'type': 'user_left',
             'username': event['username'],
             'user_id': event['user_id'],
         }))
-    
+
     async def offer_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'offer',
             'from_user': event['from_user'],
             'offer': event['offer'],
         }))
-    
+
     async def answer_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'answer',
             'from_user': event['from_user'],
             'answer': event['answer'],
         }))
-    
+
     async def ice_candidate_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'ice_candidate',
             'from_user': event['from_user'],
             'candidate': event['candidate'],
         }))
-    
+
     async def call_ended(self, event):
         await self.send(text_data=json.dumps({
             'type': 'call_ended',
             'from_user': event['from_user'],
         }))
-    
+
     @database_sync_to_async
     def end_video_call(self):
         try:
@@ -383,17 +383,17 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
         self.user = await get_user(self.scope)
         self.room_id = self.scope['url_route']['kwargs'].get('room_id')
         self.room_group_name = f'group_video_call_{self.room_id}'
-        
+
         if not self.user.is_authenticated:
             await self.close()
             return
-        
+
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
-        
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -402,13 +402,13 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
                 'user_id': self.user.id,
             }
         )
-    
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -417,11 +417,11 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
                 'user_id': self.user.id,
             }
         )
-    
+
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
-        
+
         if message_type == 'offer':
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -452,21 +452,21 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
                     'candidate': data.get('candidate'),
                 }
             )
-    
+
     async def user_joined_group(self, event):
         await self.send(text_data=json.dumps({
             'type': 'user_joined',
             'username': event['username'],
             'user_id': event['user_id'],
         }))
-    
+
     async def user_left_group(self, event):
         await self.send(text_data=json.dumps({
             'type': 'user_left',
             'username': event['username'],
             'user_id': event['user_id'],
         }))
-    
+
     async def group_offer(self, event):
         if event['to_user'] == self.user.id or event['to_user'] is None:
             await self.send(text_data=json.dumps({
@@ -474,7 +474,7 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
                 'from_user': event['from_user'],
                 'offer': event['offer'],
             }))
-    
+
     async def group_answer(self, event):
         if event['to_user'] == self.user.id:
             await self.send(text_data=json.dumps({
@@ -482,11 +482,10 @@ class GroupVideoCallConsumer(AsyncWebsocketConsumer):
                 'from_user': event['from_user'],
                 'answer': event['answer'],
             }))
-    
+
     async def group_ice_candidate(self, event):
         if event['to_user'] == self.user.id or event['to_user'] is None:
             await self.send(text_data=json.dumps({
                 'type': 'ice_candidate',
                 'from_user': event['from_user'],
                 'candidate': event['candidate'],
-            }))

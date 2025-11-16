@@ -1,7 +1,6 @@
-from collections import UserDict, UserList
 from datetime import timezone
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
@@ -10,12 +9,17 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User
 import json
 import uuid
-from .models import CallHistory, GroupVideoCall, Thread, Reply, VideoCall, Vote, ChatMessage, UserProfile, Category, Notification
+
+from .models import (
+    CallHistory, GroupVideoCall, Thread, Reply, VideoCall,
+    Vote, ChatMessage, UserProfile, Category, Notification
+)
 from .forms import ThreadForm, ReplyForm, UserProfileForm
-from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponseBadRequest
+
 
 def index(request):
     query = request.GET.get('q', '')
@@ -49,12 +53,15 @@ def index(request):
         'selected_category': category_id,
         'unread_notifications': unread_notifications
     })
-    
+
+
 def contact(request):
     return render(request, 'contact.html')
 
+
 def about(request):
     return render(request, 'about.html')
+
 
 @csrf_exempt
 @login_required
@@ -73,6 +80,7 @@ def create_thread(request):
             'type': 'new_thread'
         })
     return JsonResponse({'error': 'Invalid form'}, status=400)
+
 
 @csrf_exempt
 @login_required
@@ -104,6 +112,7 @@ def create_reply(request, thread_id):
         })
     return JsonResponse({'error': 'Invalid form'}, status=400)
 
+
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -117,6 +126,7 @@ def login_view(request):
             messages.error(request, 'Invalid username or password.')
     return render(request, 'login.html')
 
+
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -129,6 +139,7 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'register.html', {'form': form})
+
 
 @login_required
 def vote(request, model_type, object_id):
@@ -169,6 +180,7 @@ def vote(request, model_type, object_id):
 
     return JsonResponse({'vote_count': obj.vote_count(), 'user_vote': obj.user_vote(request.user)})
 
+
 @login_required
 def send_chat_message(request):
     if request.method != 'POST':
@@ -187,6 +199,7 @@ def send_chat_message(request):
         'type': 'new_chat_message'
     })
 
+
 @login_required
 def profile(request):
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
@@ -200,6 +213,7 @@ def profile(request):
         form = UserProfileForm(instance=user_profile)
 
     return render(request, 'profile.html', {'form': form, 'user_profile': user_profile})
+
 
 @login_required
 def notifications(request):
@@ -226,6 +240,7 @@ def create_thread_form(request):
         form = ThreadForm()
     categories = Category.objects.all()
     return render(request, 'create_thread.html', {'form': form, 'categories': categories})
+
 
 def search(request):
     query = request.GET.get('q', '')
@@ -256,6 +271,7 @@ def search(request):
         })
 
     return JsonResponse({'threads': threads_data})
+
 
 @login_required
 def initiate_video_call(request, user_id):
@@ -321,15 +337,15 @@ def create_group_call(request):
     """Create a new group video call"""
     if request.method != 'POST':
         return HttpResponseBadRequest('Only POST method allowed')
-    
+
     data = json.loads(request.body)
     title = data.get('title', 'Group Call')
     description = data.get('description', '')
     max_participants = data.get('max_participants', 10)
     start_time = data.get('start_time')
-    
+
     room_id = str(uuid.uuid4())[:12]
-    
+
     group_call = GroupVideoCall.objects.create(
         initiator=request.user,
         title=title,
@@ -340,7 +356,7 @@ def create_group_call(request):
         status='active'
     )
     group_call.participants.add(request.user)
-    
+
     return JsonResponse({
         'success': True,
         'room_id': room_id,

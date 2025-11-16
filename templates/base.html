@@ -125,12 +125,77 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
+    <!-- 🔔 Notification Popup -->
+    <div id="popup-notifications" class="popup-notifications"></div>
+
+    <script>
+    async function fetchNotifications() {
+        try {
+            const response = await fetch("{% url 'notifications' %}", {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await response.json();
+            data.notifications.forEach(n => showNotification(n.message));
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
+    }
+
+    function showNotification(message) {
+        const container = document.getElementById("popup-notifications");
+        const notif = document.createElement("div");
+        notif.className = "notification-popup";
+        notif.innerHTML = message;
+
+        container.appendChild(notif);
+        setTimeout(() => notif.classList.add("fade-out"), 4000);
+        setTimeout(() => notif.remove(), 4500);
+    }
+
+    // Poll every 15 seconds
+    setInterval(fetchNotifications, 15000);
+</script>
+
+    <style>
+        /* 🔔 Notification Popup Styles */
+        .popup-notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+
+        .notification-popup {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            animation: slide-in 0.4s ease;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .fade-out {
+            opacity: 0;
+        }
+    </style>
+</body>
+</html>
+ 
 <body>
     <!-- 🌟 Navbar -->
     <header>
         <div class="header-content">
             <h1>💬 Discussion Forum</h1>
-            <nav>
+            {% comment %} <nav>
                 <a href="{% url 'index' %}">🏠 Home</a>
                 <a href="{% url 'about' %}">About</a>
                 {% if user.is_authenticated %}
@@ -146,7 +211,28 @@
                     <a href="{% url 'login' %}">🔐 Login</a>
                     <a href="{% url 'register' %}">📝 Register</a>
                 {% endif %}
-            </nav>
+            </nav> {% endcomment %}
+
+            <nav>
+    <a href="{% url 'index' %}">🏠 Home</a>
+    <a href="{% url 'about' %}">About</a>
+    <a href="{% url 'profile' %}">👤 Profile</a>
+
+    {% if user.is_authenticated %}
+        <span class="user-info">Welcome, {{ user.username }}!</span>
+        <a href="{% url 'notifications' %}" style="position: relative;">
+            🔔 Notifications
+            {% if unread_notifications > 0 %}
+                <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
+            {% endif %}
+        </a>
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+    {% else %}
+        <a href="{% url 'login' %}">🔐 Login</a>
+        <a href="{% url 'register' %}">📝 Register</a>
+    {% endif %}
+</nav>
+
         </div>
     </header>
 
