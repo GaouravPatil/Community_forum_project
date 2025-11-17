@@ -139,7 +139,22 @@
                 {% endif %}
             </div>
 
+            {% if incoming_calls %}
+                <h2>Incoming Calls</h2>
+                {% for call in incoming_calls %}
+                    <div class="notification unread">
+                        <div class="notification-content">{{ call.caller.username }} is calling you ({{ call.call_type }})</div>
+                        <div class="notification-meta">{{ call.created_at|timesince }} ago</div>
+                        <div style="margin-top:0.5rem;">
+                            <button class="mark-read-btn accept-call-btn" data-call-id="{{ call.id }}">Accept</button>
+                            <button class="mark-read-btn reject-call-btn" style="background:#f56565; margin-left:8px;" data-call-id="{{ call.id }}">Reject</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
             {% if notifications %}
+                <h2 style="margin-top:1.5rem;">Other Notifications</h2>
                 {% for notification in notifications %}
                     <div class="notification {% if not notification.is_read %}unread{% endif %}">
                         <div class="notification-content">{{ notification.message }}</div>
@@ -152,7 +167,7 @@
                 </div>
             {% endif %}
 
-            <a href="{% url 'index' %}" class="back-link">← Back to Forum</a>
+            <a href="{% url 'home' %}" class="back-link">← Back to Forum</a>
         </div>
     </div>
 
@@ -181,6 +196,67 @@
                 .find(row => row.startsWith('csrftoken='))
                 ?.split('=')[1];
             return cookieValue || '';
+        }
+
+        async function acceptCall(callId) {
+            try {
+                const res = await fetch('{% url "accept_call" 0 %}'.replace('/0/','/'+callId+'/'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: ''
+                });
+                const j = await res.json();
+                if (j.success) {
+                    // open call page
+                    window.location.href = '{% url "call_page" 0 %}'.replace('/0/','/'+callId+'/');
+                } else {
+                    alert(j.error || 'Unable to accept call');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error accepting call');
+            }
+        }
+
+        // Attach event listeners to accept/reject buttons rendered server-side
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.accept-call-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.dataset.callId;
+                    if (id) acceptCall(id);
+                });
+            });
+            document.querySelectorAll('.reject-call-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.dataset.callId;
+                    if (id) rejectCall(id);
+                });
+            });
+        });
+
+        async function rejectCall(callId) {
+            try {
+                const res = await fetch('{% url "reject_call" 0 %}'.replace('/0/','/'+callId+'/'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: ''
+                });
+                const j = await res.json();
+                if (j.success) {
+                    location.reload();
+                } else {
+                    alert(j.error || 'Unable to reject call');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error rejecting call');
+            }
         }
     </script>
 </body>

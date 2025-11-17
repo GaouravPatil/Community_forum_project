@@ -11,6 +11,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.contenttypes.models import ContentType
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 import json
 import uuid
@@ -227,11 +229,16 @@ def profile(request):
 @login_required
 def notifications(request):
     notifications_qs = Notification.objects.filter(user=request.user).order_by('-created_at')
+    # include any incoming ringing calls so user can accept/reject from notifications
+    incoming_calls = VideoCall.objects.filter(receiver=request.user, status='ringing').order_by('-created_at')
     if request.method == 'POST':
         notifications_qs.update(is_read=True)
         return JsonResponse({'status': 'success'})
 
-    return render(request, 'notifications.html', {'notifications': notifications_qs})
+    return render(request, 'notifications.html', {
+        'notifications': notifications_qs,
+        'incoming_calls': incoming_calls,
+    })
 
 
 @login_required
@@ -290,6 +297,24 @@ def initiate_video_call(request, user_id):
             receiver=receiver,
             status='ringing'
         )
+        # push realtime incoming-call event to receiver's websocket connections
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'user_{receiver.id}',
+                {
+                    'type': 'incoming_call',
+                    'call_id': call.id,
+                    'caller_id': request.user.id,
+                    'caller_username': request.user.username,
+                    'call_type': call.call_type,
+                    'created_at': str(call.created_at),
+                }
+            )
+        except Exception:
+            # don't fail the request if notification push fails
+            pass
+
         return JsonResponse({
             'success': True,
             'call_id': call.id,
@@ -414,7 +439,8 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect(request.GET.get('next', 'chat_home'))
+            # default redirect to main landing 'home'
+            return redirect(request.GET.get('next', 'home'))
         messages.error(request, 'Invalid credentials.')
         return render(request, 'login.html', {'username': username})
     return render(request, 'login.html')
@@ -445,7 +471,7 @@ def notifications_list(request):
         data = [{
             'id': n.id,
             'message': n.message,
-            'read': n.read,
+            'is_read': n.is_read,
             'created_at': n.created_at.isoformat(),
             'thread_id': getattr(n.thread, 'id', None),
         } for n in notifications]
@@ -458,7 +484,7 @@ def notifications_list(request):
 def mark_notification_read(request, notif_id):
     try:
         notif = Notification.objects.get(id=notif_id, user=request.user)
-        notif.read = True
+        notif.is_read = True
         notif.save()
         return JsonResponse({'success': True})
     except Notification.DoesNotExist:
@@ -496,6 +522,22 @@ def initiate_call(request):
         message=f"{request.user.username} is calling you ({call_type})",
         thread=None
     )
+    # push realtime incoming-call event to receiver's websocket connections
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'user_{target.id}',
+            {
+                'type': 'incoming_call',
+                'call_id': call.id,
+                'caller_id': request.user.id,
+                'caller_username': request.user.username,
+                'call_type': call.call_type,
+                'created_at': str(call.created_at),
+            }
+        )
+    except Exception:
+        pass
     ws_path = f"/ws/video-call/{call.id}/"
     return JsonResponse({'success': True, 'call_id': call.id, 'ws_path': ws_path, 'call_type': call.call_type})
 

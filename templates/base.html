@@ -216,12 +216,70 @@
             opacity: 0;
         }
     </style>
+    <style>
+        /* Incoming call modal */
+        .call-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .call-modal {
+            background: white;
+            color: #2d3748;
+            padding: 1.2rem 1.6rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        .call-modal .caller { font-weight: 700; margin-bottom: .4rem; }
+        .call-modal .controls { margin-top: 1rem; display:flex; gap: .6rem; justify-content:center; }
+        .call-accept { background: #48bb78; color: white; border: none; padding: .6rem 1rem; border-radius:8px; }
+        .call-reject { background: #f56565; color: white; border: none; padding: .6rem 1rem; border-radius:8px; }
+        /* Header toast for incoming calls */
+        .header-call-toast {
+            position: absolute;
+            top: 14px;
+            right: 180px;
+            z-index: 11000;
+            pointer-events: none;
+        }
+        .toast-card {
+            pointer-events: auto;
+            background: linear-gradient(135deg,#ffffff 0%,#f7fafc 100%);
+            color: #2d3748;
+            padding: 0.6rem 0.9rem;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            display: flex;
+            gap: .6rem;
+            align-items: center;
+            min-width: 220px;
+        }
+        .toast-caller { font-weight: 700; font-size: .95rem; }
+        .toast-type { color: #718096; font-size: .85rem; margin-left: .25rem; }
+        .toast-actions { margin-left: auto; display:flex; gap: .4rem; }
+        .toast-accept { background:#48bb78; color:white; border:none; padding:.35rem .6rem; border-radius:6px; }
+        .toast-reject { background:#f56565; color:white; border:none; padding:.35rem .6rem; border-radius:6px; }
+        #ring-toggle { color: #2d3748; background: transparent; border: none; cursor: pointer; font-size: 1.1rem; }
+        #ring-toggle.ring-muted { opacity: 0.4; }
+    </style>
     <!-- 🌟 Navbar -->
     <header>
         <div class="header-content">
             <h1>💬 Discussion Forum</h1>
+            <!-- ringtone toggle + compact header toast for incoming calls -->
+            <div style="display:flex;align-items:center;gap:.6rem">
+                <button id="ring-toggle" title="Toggle ringtone">🔔</button>
+                <div id="header-call-toast" class="header-call-toast" aria-live="polite"></div>
+            </div>
             {% comment %} <nav>
-                <a href="{% url 'index' %}">🏠 Home</a>
+                <a href="{% url 'home' %}">🏠 Home</a>
                 <a href="{% url 'about' %}">About</a>
                 {% if user.is_authenticated %}
                     <span class="user-info">Welcome, {{ user.username }}!</span>
@@ -266,6 +324,253 @@
         </p>
     </footer>
 
+    <!-- Incoming call modal -->
+    <div id="incoming-call-backdrop" class="call-modal-backdrop">
+        <div class="call-modal">
+            <div class="caller" id="incoming-caller">Incoming call</div>
+            <div id="incoming-call-type" style="color:#718096;font-size:.95rem;">&nbsp;</div>
+            <div class="controls">
+                <button id="accept-call-btn" class="call-accept">Accept</button>
+                <button id="reject-call-btn" class="call-reject">Reject</button>
+            </div>
+        </div>
+    </div>
+
     {% block extra_js %}{% endblock %}
+
+    <script>
+        // helper to get CSRF token from cookie
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue || '';
+        }
+
+        // Open a websocket to the chat consumer to receive incoming-call events
+        (function(){
+            try {
+                // ringtone + desktop-notification helpers
+                let ringEnabled = (localStorage.getItem('ringEnabled') !== 'false');
+                let audioCtx = null;
+                let oscillator = null;
+                let ringGain = null;
+
+                const ringToggleBtn = document.getElementById('ring-toggle');
+                function updateRingToggleUI() {
+                    if (!ringToggleBtn) return;
+                    if (ringEnabled) ringToggleBtn.classList.remove('ring-muted'); else ringToggleBtn.classList.add('ring-muted');
+                }
+                if (ringToggleBtn) {
+                    updateRingToggleUI();
+                    ringToggleBtn.addEventListener('click', async () => {
+                        ringEnabled = !ringEnabled;
+                        localStorage.setItem('ringEnabled', ringEnabled ? 'true' : 'false');
+                        updateRingToggleUI();
+                        // ask for notification permission when enabling
+                        if (ringEnabled && Notification && Notification.permission === 'default') {
+                            try { await Notification.requestPermission(); } catch(e) { /* ignore */ }
+                        }
+                    });
+                }
+
+                function startRinging() {
+                    try {
+                        if (!ringEnabled) return;
+                        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        if (oscillator) return; // already ringing
+                        oscillator = audioCtx.createOscillator();
+                        ringGain = audioCtx.createGain();
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                        ringGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+                        oscillator.connect(ringGain);
+                        ringGain.connect(audioCtx.destination);
+                        oscillator.start();
+                        ringGain.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.05);
+                    } catch (e) { console.warn('Ringtone start error', e); }
+                }
+
+                function stopRinging() {
+                    try {
+                        if (!oscillator || !ringGain) return;
+                        ringGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+                        setTimeout(() => {
+                            try { oscillator.stop(); } catch(e){}
+                            try { oscillator.disconnect(); ringGain.disconnect(); } catch(e){}
+                            oscillator = null; ringGain = null;
+                        }, 150);
+                    } catch (e) { console.warn('Ringtone stop error', e); }
+                }
+
+                function showDesktopNotification(call) {
+                    try {
+                        if (!('Notification' in window)) return;
+                        if (Notification.permission === 'default') {
+                            // don't block: request permission but still continue
+                            Notification.requestPermission().catch(()=>{});
+                        }
+                        if (Notification.permission === 'granted') {
+                            const n = new Notification(call.caller_username + ' is calling', {
+                                body: ((call.call_type||'video').toUpperCase() + ' call'),
+                                tag: 'incoming-call-' + call.call_id,
+                                renotify: true
+                            });
+                            n.onclick = function(ev) {
+                                ev.preventDefault();
+                                window.focus();
+                                window.location.href = '{% url "call_page" 0 %}'.replace('/0/','/'+call.call_id+'/');
+                                try { n.close(); } catch(e){}
+                            };
+                        }
+                    } catch (e) { console.warn('Desktop notification failed', e); }
+                }
+
+                const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const socket = new WebSocket(wsProtocol + '//' + location.host + '/ws/chat/');
+
+                socket.addEventListener('open', () => console.log('Chat WS connected'));
+                socket.addEventListener('message', (ev) => {
+                    try {
+                        const data = JSON.parse(ev.data);
+                        if (data.type === 'incoming_call') {
+                                    showIncomingCall(data);
+                                    showHeaderToast(data);
+                        } else if (data.type === 'new_notification') {
+                            // optionally display other notifications
+                            showNotification(data.notification.message || JSON.stringify(data.notification));
+                        }
+                    } catch (e) { console.error('WS parse error', e); }
+                });
+
+                socket.addEventListener('close', () => console.log('Chat WS closed'));
+
+                let currentCall = null;
+
+                function showIncomingCall(call) {
+                    currentCall = call;
+                    document.getElementById('incoming-caller').textContent = call.caller_username + ' is calling';
+                    document.getElementById('incoming-call-type').textContent = (call.call_type || 'video').toUpperCase();
+                    document.getElementById('incoming-call-backdrop').style.display = 'flex';
+                    // start ringtone and desktop notification
+                    try { startRinging(); } catch(e){}
+                    try { showDesktopNotification(call); } catch(e){}
+                }
+
+                let headerToastEl = null;
+                let headerToastTimeout = null;
+
+                function showHeaderToast(call) {
+                    // remove previous
+                    if (headerToastEl) {
+                        headerToastEl.remove();
+                        headerToastEl = null;
+                    }
+                    const container = document.getElementById('header-call-toast');
+                    if (!container) return;
+                    const card = document.createElement('div');
+                    card.className = 'toast-card';
+                    card.innerHTML = `
+                        <div>
+                            <div class="toast-caller">${call.caller_username}</div>
+                            <div class="toast-type">${(call.call_type||'video').toUpperCase()} call</div>
+                        </div>
+                        <div class="toast-actions">
+                            <button class="toast-accept">Accept</button>
+                            <button class="toast-reject">Reject</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                    headerToastEl = card;
+
+                    // play ringtone and show desktop notification
+                    try { startRinging(); } catch(e){}
+                    try { showDesktopNotification(call); } catch(e){}
+
+                    const acceptBtn = card.querySelector('.toast-accept');
+                    const rejectBtn = card.querySelector('.toast-reject');
+
+                    acceptBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await acceptCallId(call.call_id);
+                        hideHeaderToast();
+                        document.getElementById('incoming-call-backdrop').style.display = 'none';
+                    });
+                    rejectBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await rejectCallId(call.call_id);
+                        hideHeaderToast();
+                        document.getElementById('incoming-call-backdrop').style.display = 'none';
+                    });
+
+                    // auto-dismiss after 20s
+                    headerToastTimeout = setTimeout(() => {
+                        hideHeaderToast();
+                    }, 20000);
+                }
+
+                function hideHeaderToast() {
+                    if (headerToastTimeout) { clearTimeout(headerToastTimeout); headerToastTimeout = null; }
+                    if (headerToastEl) { headerToastEl.remove(); headerToastEl = null; }
+                    try { stopRinging(); } catch(e){}
+                }
+
+                async function acceptCallId(callId) {
+                    try {
+                        const res = await fetch('{% url "accept_call" 0 %}'.replace('/0/','/'+callId+'/'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': getCSRFToken()
+                            },
+                            body: ''
+                        });
+                        const j = await res.json();
+                        if (j.success) {
+                            try { stopRinging(); } catch(e){}
+                            window.location.href = '{% url "call_page" 0 %}'.replace('/0/','/'+callId+'/');
+                        } else {
+                            alert(j.error || 'Unable to accept call');
+                        }
+                    } catch (e) { console.error(e); alert('Error accepting call'); }
+                }
+
+                async function rejectCallId(callId) {
+                    try {
+                        const res = await fetch('{% url "reject_call" 0 %}'.replace('/0/','/'+callId+'/'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': getCSRFToken()
+                            },
+                            body: ''
+                        });
+                        const j = await res.json();
+                        if (j.success) {
+                            try { stopRinging(); } catch(e){}
+                        } else {
+                            alert(j.error || 'Unable to reject call');
+                        }
+                    } catch (e) { console.error(e); alert('Error rejecting call'); }
+                }
+
+                document.getElementById('accept-call-btn').addEventListener('click', async () => {
+                    if (!currentCall) return;
+                    await acceptCallId(currentCall.call_id);
+                });
+
+                document.getElementById('reject-call-btn').addEventListener('click', async () => {
+                    if (!currentCall) return;
+                    await rejectCallId(currentCall.call_id);
+                    document.getElementById('incoming-call-backdrop').style.display = 'none';
+                    currentCall = null;
+                });
+
+            } catch (e) {
+                console.warn('Could not open chat websocket for incoming-call popups', e);
+            }
+        })();
+    </script>
 </body>
 </html>

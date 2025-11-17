@@ -22,6 +22,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+        # Also join a user-specific group so we can push direct notifications (incoming calls)
+        if self.user and self.user.is_authenticated:
+            self.user_group_name = f'user_{self.user.id}'
+            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -30,6 +35,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        # Leave user group
+        if getattr(self, 'user_group_name', None):
+            await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -242,6 +250,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'new_notification',
             'notification': event['notification']
+        }))
+
+    async def incoming_call(self, event):
+        # forwarded to a specific user's websocket connections
+        await self.send(text_data=json.dumps({
+            'type': 'incoming_call',
+            'call_id': event.get('call_id'),
+            'caller_id': event.get('caller_id'),
+            'caller_username': event.get('caller_username'),
+            'call_type': event.get('call_type'),
+            'created_at': event.get('created_at'),
         }))
 
 

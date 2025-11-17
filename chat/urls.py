@@ -10,7 +10,9 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),  # Ensure this exists
 
     # notifications
-    path('notifications/', views.notifications_list, name='notifications_list'),
+    # notifications: page and json endpoint
+    path('notifications/', views.notifications, name='notifications'),
+    path('notifications/json/', views.notifications_list, name='notifications_list'),
     path('notifications/mark-read/<int:notif_id>/', views.mark_notification_read, name='mark_notification_read'),
 
     # calls (REST endpoints)
