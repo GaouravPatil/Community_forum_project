@@ -26,4 +26,8 @@ urlpatterns = [
     path('search/', views.search, name='search'),
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
+
+    # API endpoints for registration checks
+    path('api/check-username/', views.check_username, name='check_username'),
+    path('api/check-email/', views.check_email, name='check_email'),
 ]
