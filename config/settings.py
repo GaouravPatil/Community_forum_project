@@ -145,8 +145,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Authentication settings
-LOGIN_REDIRECT_URL = '/chat/'
-LOGOUT_REDIRECT_URL = '/chat/'
+LOGIN_REDIRECT_URL = '/chat/chat/'
+LOGOUT_REDIRECT_URL = '/'
 # Ensure login_required redirects to the app login view
 LOGIN_URL = '/chat/login/'
 

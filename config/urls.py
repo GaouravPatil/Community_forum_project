@@ -19,9 +19,10 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
+from chat.views import root_redirect
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/chat/')),
+    path('', root_redirect, name='root'),
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
     path('chat/', include('chat.urls')),

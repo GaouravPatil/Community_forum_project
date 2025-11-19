@@ -26,6 +26,13 @@ from .models import (
 from .forms import ThreadForm, ReplyForm, UserProfileForm
 
 
+def root_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('chat_home')
+    else:
+        return redirect('user_login')
+
+
 def index(request):
     query = request.GET.get('q', '')
     category_id = request.GET.get('category', '')
@@ -439,8 +446,8 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            # default redirect to main landing 'home'
-            return redirect(request.GET.get('next', 'home'))
+            # default redirect to main landing 'chat_home'
+            return redirect(request.GET.get('next', 'chat_home'))
         messages.error(request, 'Invalid credentials.')
         return render(request, 'login.html', {'username': username})
     return render(request, 'login.html')
