@@ -1,3 +1,8 @@
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+import django
+django.setup()
+
 from datetime import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -608,5 +613,29 @@ def call_page(request, call_id):
         'call_type': call.call_type,
         'is_caller': request.user == call.caller
     })
+
+
+def check_username(request):
+    username = request.GET.get('username', '').strip()
+    if not username:
+        return JsonResponse({'available': False, 'message': 'Username is required'})
+    if len(username) < 3 or len(username) > 30:
+        return JsonResponse({'available': False, 'message': 'Username must be 3-30 characters'})
+    if not username.replace('_', '').isalnum():
+        return JsonResponse({'available': False, 'message': 'Username can only contain letters, numbers, and underscores'})
+    if User.objects.filter(username__iexact=username).exists():
+        return JsonResponse({'available': False, 'message': 'Username is already taken'})
+    return JsonResponse({'available': True, 'message': 'Username is available'})
+
+
+def check_email(request):
+    email = request.GET.get('email', '').strip()
+    if not email:
+        return JsonResponse({'available': False, 'message': 'Email is required'})
+    if '@' not in email:
+        return JsonResponse({'available': False, 'message': 'Invalid email format'})
+    if User.objects.filter(email__iexact=email).exists():
+        return JsonResponse({'available': False, 'message': 'Email is already registered'})
+    return JsonResponse({'available': True, 'message': 'Email is available'})
 
 
