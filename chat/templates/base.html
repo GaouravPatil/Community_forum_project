@@ -6,10 +6,6 @@
     <title>{% block title %}Community Forum{% endblock %}</title>
 
     <style>
-        /* ===============================
-           GLOBAL PAGE STYLES
-           =============================== */
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -19,6 +15,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background 0.3s, color 0.3s;
         }
 
         header {
@@ -29,6 +26,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            transition: background 0.3s, color 0.3s;
         }
 
         .header-content {
@@ -37,14 +35,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         nav {
@@ -59,13 +49,12 @@
             padding: 0.6rem 1rem;
             border-radius: 8px;
             transition: all 0.3s ease;
-            font-weight: 500;
         }
 
         nav a:hover {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
 
         main {
@@ -73,6 +62,7 @@
             max-width: 1400px;
             margin: 2rem auto;
             padding: 0 2rem;
+            transition: color 0.3s;
         }
 
         footer {
@@ -80,35 +70,11 @@
             backdrop-filter: blur(8px);
             text-align: center;
             padding: 1rem;
-            font-size: 0.9rem;
-            color: #4a5568;
             border-top: 1px solid #e2e8f0;
+            transition: background 0.3s, color 0.3s;
         }
 
-        footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-        }
-
-        /* ===============================
-           NOTIFICATION POPUP
-           =============================== */
+        /* 🔔 Notification Popup */
         .popup-notifications {
             position: fixed;
             top: 20px;
@@ -124,174 +90,221 @@
             color: white;
             padding: 1rem 1.2rem;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             animation: slide-in 0.4s ease;
             transition: opacity 0.5s;
         }
 
         @keyframes slide-in {
             from { transform: translateX(100%); opacity: 0; }
-            to   { transform: translateX(0);   opacity: 1; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         .fade-out { opacity: 0; }
 
-        /* ===============================
-           ANIMATION CLASSES
-           =============================== */
-
+        /* ✨ Scroll Animation */
         .animate {
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.6s ease-out;
         }
-
         .animate.show {
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* 🌙 DARK MODE */
+        body.dark {
+            background: #1a1a1a;
+            color: #e2e8f0;
+        }
+
+        header.dark, footer.dark {
+            background: rgba(40, 40, 40, 0.9);
+            color: white;
+        }
+
+        nav a.dark-link {
+            color: #cbd5e1;
+        }
+
+        nav a.dark-link:hover {
+            background: #4c1d95;
+            color: white;
+        }
+
+        .dark-box {
+            background: #2d2d2d !important;
+            color: #e2e8f0;
+            border-color: #444 !important;
+        }
+
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 
-
-
-<!-- Notification Container -->
-<div id="popup-notifications" class="popup-notifications"></div>
-
-
-
 <body>
 
-<!-- ===============================
-     NAVBAR
-     =============================== -->
-<header>
-    <div class="header-content">
-        <h1>💬 Discussion Forum</h1>
+    <!-- 🔔 Notifications -->
+    <div id="popup-notifications" class="popup-notifications"></div>
 
-        <nav>
-            <a href="{% url 'index' %}">🏠 Home</a>
-            <a href="{% url 'about' %}">About</a>
-            <a href="{% url 'profile' %}">👤 Profile</a>
+    <header id="header">
+        <div class="header-content">
+            <h1>💬 Discussion Forum</h1>
 
-            {% if user.is_authenticated %}
-                <span class="user-info">Welcome, {{ user.username }}!</span>
+            <nav>
+                <a href="{% url 'index' %}">🏠 Home</a>
+                <a href="{% url 'about' %}">About</a>
+                <a href="{% url 'profile' %}">👤 Profile</a>
 
-                <a href="{% url 'notifications' %}" style="position: relative;">
-                    🔔 Notifications
-                    {% if unread_notifications > 0 %}
-                        <span style="position: absolute; top: -8px; right: -8px; 
-                                     background: #f56565; color: white; border-radius: 50%; 
-                                     padding: 2px 6px; font-size: 0.8rem;">
-                            {{ unread_notifications }}
-                        </span>
-                    {% endif %}
-                </a>
-                <a href="{% url 'logout' %}">🚪 Logout</a>
+                <button id="toggle-dark"
+                        style="padding:8px 14px;border-radius:8px;border:none;cursor:pointer;">
+                    🌙 Dark Mode
+                </button>
 
-            {% else %}
-                <a href="{% url 'login' %}">🔐 Login</a>
-                <a href="{% url 'register' %}">📝 Register</a>
-            {% endif %}
-        </nav>
-    </div>
-</header>
+                {% if user.is_authenticated %}
+                    <span>Welcome, {{ user.username }}</span>
+                    <a href="{% url 'logout' %}">🚪 Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">🔐 Login</a>
+                    <a href="{% url 'register' %}">📝 Register</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
 
+    <main>
+        {% block content %}{% endblock %}
+    </main>
 
-
-<!-- ===============================
-     MAIN CONTENT
-     =============================== -->
-<main>
-    {% block content %}{% endblock %}
-</main>
-
-
-
-<!-- ===============================
-     FOOTER
-     =============================== -->
-<footer>
-    <p>
-        © {{ now|date:"Y" }} Community Forum.  
+    <footer id="footer">
+        © {{ now|date:"Y" }} Community Forum |
         <a href="{% url 'about' %}">About</a> |
         <a href="{% url 'contact' %}">Contact</a>
-    </p>
-</footer>
+    </footer>
 
 
+    <!-- JAVASCRIPT FOR ALL FEATURES -->
+    <script>
+    /* ===============================
+       🔔 Notification Polling
+       =============================== */
+    async function fetchNotifications() {
+        try {
+            const response = await fetch("{% url 'notifications' %}", {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await response.json();
+            data.notifications.forEach(n => showNotification(n.message));
+        } catch (error) { console.error(error); }
+    }
+    function showNotification(message) {
+        const container = document.getElementById("popup-notifications");
+        const notif = document.createElement("div");
+        notif.className = "notification-popup";
+        notif.innerHTML = message;
 
-<!-- ===============================
-     JAVASCRIPT
-     =============================== -->
-<script>
-/* ===============================
-   NOTIFICATION SYSTEM
-   =============================== */
-async function fetchNotifications() {
-    try {
-        const response = await fetch("{% url 'notifications' %}", {
-            headers: {"X-Requested-With": "XMLHttpRequest"}
+        container.appendChild(notif);
+        setTimeout(() => notif.classList.add("fade-out"), 4000);
+        setTimeout(() => notif.remove(), 4500);
+    }
+    setInterval(fetchNotifications, 15000);
+
+    /* ===============================
+       ✨ Scroll Animations
+       =============================== */
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add("show");
+        });
+    });
+    document.querySelectorAll(".animate").forEach(el => observer.observe(el));
+
+    /* ===============================
+       🧊 Smooth Scroll
+       =============================== */
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+        link.addEventListener("click", function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute("href"));
+            target?.scrollIntoView({ behavior: "smooth" });
+        });
+    });
+
+    /* ===============================
+       🌙 Dark Mode
+       =============================== */
+    document.addEventListener("DOMContentLoaded", () => {
+        const toggle = document.getElementById("toggle-dark");
+        const header = document.getElementById("header");
+        const footer = document.getElementById("footer");
+
+        if (localStorage.getItem("theme") === "dark") enableDark();
+
+        toggle.addEventListener("click", () => {
+            if (document.body.classList.contains("dark")) {
+                disableDark();
+            } else {
+                enableDark();
+            }
         });
 
-        const data = await response.json();
-        data.notifications.forEach(n => showNotification(n.message));
+        function enableDark() {
+            document.body.classList.add("dark");
+            header.classList.add("dark");
+            footer.classList.add("dark");
 
-    } catch (error) {
-        console.error("Error fetching notifications:", error);
-    }
-}
+            document.querySelectorAll("nav a").forEach(a => a.classList.add("dark-link"));
+            document.querySelectorAll("input, textarea, .card, .box, .animate")
+                .forEach(el => el.classList.add("dark-box"));
 
-function showNotification(message) {
-    const container = document.getElementById("popup-notifications");
-    const notif = document.createElement("div");
+            localStorage.setItem("theme", "dark");
+            toggle.innerHTML = "☀️ Light Mode";
+        }
 
-    notif.className = "notification-popup";
-    notif.innerHTML = message;
+        function disableDark() {
+            document.body.classList.remove("dark");
+            header.classList.remove("dark");
+            footer.classList.remove("dark");
 
-    container.appendChild(notif);
+            document.querySelectorAll("nav a").forEach(a => a.classList.remove("dark-link"));
+            document.querySelectorAll("input, textarea, .card, .box, .animate")
+                .forEach(el => el.classList.remove("dark-box"));
 
-    setTimeout(() => notif.classList.add("fade-out"), 4000);
-    setTimeout(() => notif.remove(), 4500);
-}
-
-setInterval(fetchNotifications, 15000);
-
-
-
-/* ===============================
-   SMOOTH SCROLL
-   =============================== */
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener("click", function(e) {
-        e.preventDefault();
-
-        const target = document.querySelector(this.getAttribute("href"));
-        if (target) {
-            target.scrollIntoView({ behavior: "smooth", block: "start" });
+            localStorage.setItem("theme", "light");
+            toggle.innerHTML = "🌙 Dark Mode";
         }
     });
-});
 
+    /* ===============================
+       📝 Auto-Save Thread Draft
+       =============================== */
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleField = document.getElementById("thread-title");
+        const bodyField = document.getElementById("thread-body");
 
+        if (!titleField || !bodyField) return;
 
-/* ===============================
-   FADE + SLIDE ANIMATION
-   =============================== */
-const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add("show");
-        }
+        if (localStorage.getItem("draft_title"))
+            titleField.value = localStorage.getItem("draft_title");
+
+        if (localStorage.getItem("draft_body"))
+            bodyField.value = localStorage.getItem("draft_body");
+
+        titleField.addEventListener("input", () =>
+            localStorage.setItem("draft_title", titleField.value)
+        );
+        bodyField.addEventListener("input", () =>
+            localStorage.setItem("draft_body", bodyField.value)
+        );
+
+        const form = document.querySelector("form");
+        form?.addEventListener("submit", () => {
+            localStorage.removeItem("draft_title");
+            localStorage.removeItem("draft_body");
+        });
     });
-});
+    </script>
 
-document.querySelectorAll(".animate").forEach(el => observer.observe(el));
-
-</script>
-
-{% block extra_js %}{% endblock %}
 </body>
 </html>
