@@ -70,6 +70,36 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
+    /* ------------ FILTER STYLES ------------ */
+    .filters {
+        margin-bottom: 1.5rem;
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #764ba2;
+    }
+
+    .filter-select {
+        padding: 0.7rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e0;
+    }
+
+    .filter-btn {
+        padding: 0.7rem 1.3rem;
+        background: #667eea;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .filter-btn:hover {
+        background: #5a67d8;
+    }
+
+    /* ------------ THREAD STYLES ------------ */
     .new-thread {
         margin-bottom: 2rem;
     }
@@ -149,6 +179,8 @@
 </style>
 
 <main>
+
+    <!-- SIDEBAR -->
     <aside>
         <div class="sidebar-card">
             <h3>📂 Categories</h3>
@@ -158,6 +190,7 @@
                 {% endfor %}
             </ul>
         </div>
+
         <div class="sidebar-card">
             <h3>🔥 Recent Posts</h3>
             <ul>
@@ -170,7 +203,38 @@
         </div>
     </aside>
 
+    <!-- MAIN CONTENT -->
     <section class="main">
+
+        <!-- ✔ FILTER BAR (CATEGORY + TIME) -->
+        <div class="filters">
+            <form method="GET" style="display:flex; flex-wrap:wrap; gap:1rem;">
+
+                <!-- Category Filter -->
+                <select name="category" class="filter-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}"
+                        {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Time Filter -->
+                <select name="time" class="filter-select">
+                    <option value="">All Time</option>
+                    <option value="today" {% if selected_time == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if selected_time == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="month" {% if selected_time == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="year" {% if selected_time == 'year' %}selected{% endif %}>This Year</option>
+                </select>
+
+                <button type="submit" class="filter-btn">Filter</button>
+            </form>
+        </div>
+
+        <!-- CREATE THREAD -->
         <div class="new-thread">
             <h3>✨ Create a New Thread</h3>
             <input type="text" id="thread-title" placeholder="Enter thread title...">
@@ -184,6 +248,7 @@
             <button onclick="createThread()">🚀 Post Thread</button>
         </div>
 
+        <!-- THREAD LIST -->
         <div id="threads">
             {% for thread in page_obj %}
                 <div class="thread" id="thread-{{ thread.id }}">
@@ -195,14 +260,16 @@
                             | <span>📂 {{ thread.category.name }}</span>
                         {% endif %}
                     </div>
+
                     <p>{{ thread.content }}</p>
+
                     <div class="vote-buttons">
-                        <button class="vote-btn {% if thread.user_vote == 1 %}upvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, 1)">👍</button>
+                        <button class="vote-btn">👍</button>
                         <span class="vote-count">{{ thread.vote_count }}</span>
-                        <button class="vote-btn {% if thread.user_vote == -1 %}downvoted{% endif %}" onclick="vote('thread', {{ thread.id }}, -1)">👎</button>
+                        <button class="vote-btn">👎</button>
                     </div>
 
-                    <div class="replies" id="replies-{{ thread.id }}">
+                    <div class="replies">
                         {% for reply in thread.replies.all %}
                             <div class="reply">
                                 <strong>{{ reply.author.username }}</strong>: {{ reply.content }}
@@ -212,11 +279,12 @@
 
                     <div class="reply-form">
                         <textarea placeholder="Write a reply..."></textarea>
-                        <button onclick="replyToThread({{ thread.id }})">💬 Reply</button>
+                        <button>💬 Reply</button>
                     </div>
                 </div>
             {% endfor %}
         </div>
+
     </section>
 </main>
 {% endblock %}
@@ -225,14 +293,6 @@
 <script>
 function createThread() {
     alert("Thread creation logic coming soon!");
-}
-
-function vote(type, id, value) {
-    alert(`Voted ${value > 0 ? "up" : "down"} on ${type} #${id}`);
-}
-
-function replyToThread(threadId) {
-    alert(`Reply added to thread ${threadId}`);
 }
 </script>
 {% endblock %}
