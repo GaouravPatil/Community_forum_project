@@ -4,52 +4,140 @@
 {% block title %}About Us - Discussion Forum{% endblock %}
 
 {% block content %}
-<div class="about-page">
+<style>
+    .about-container {
+        max-width: 900px;
+        margin: auto;
+        padding: 30px;
+        line-height: 1.7;
+        font-family: "Inter", sans-serif;
+    }
+
+    .about-container h2,
+    .about-container h3 {
+        font-weight: 600;
+        color: #222;
+    }
+
+    .team-section {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+    }
+
+    .team-card {
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .team-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 18px rgba(0,0,0,0.1);
+    }
+
+    .team-card h4 {
+        margin-bottom: 5px;
+        font-size: 1.2rem;
+        color: #333;
+    }
+
+    #motivateBtn {
+        padding: 10px 18px;
+        background: #0056d6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.25s ease;
+        font-size: 0.95rem;
+    }
+
+    #motivateBtn:hover {
+        background: #003f9c;
+    }
+
+    #message {
+        font-weight: 600;
+        margin-top: 15px;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+        color: #111;
+    }
+
+    /* Fade-in animation keyframe */
+    .fade-in {
+        opacity: 1 !important;
+    }
+</style>
+
+<div class="about-container">
     <h2>About Our Community Forum 💬</h2>
-    <p>Welcome to our discussion forum! Here, people from all walks of life come together to share ideas, ask questions, and learn from one another. Our goal is to create a safe, informative, and engaging space for everyone.</p>
+    <p>
+        Welcome to our professional community-driven platform where individuals come together 
+        to exchange knowledge, collaborate, and grow. We are committed to maintaining a 
+        respectful, informative, and engaging environment for all users.
+    </p>
 
     <h3>Our Mission 🎯</h3>
-    <p>We aim to empower users to have meaningful conversations, find solutions, and grow knowledge collectively.</p>
+    <p>
+        Our goal is to empower individuals through meaningful discussions, 
+        collective problem-solving, and continuous learning.
+    </p>
 
     <h3>Meet Our Team 👥</h3>
-    <div class="team">
-        <div class="member">
-            <img src="{% static 'images/member1.jpg' %}" alt="Member 1">
-            <h4>Alice</h4>
-            <p>Community Manager</p>
-        </div>
-        <div class="member">
-            <img src="{% static 'images/member2.jpg' %}" alt="Member 2">
-            <h4>Bob</h4>
+    <div class="team-section">
+        <div class="team-card">
+            <h4>Gaurav Patil</h4>
             <p>Lead Developer</p>
         </div>
-        <div class="member">
-            <img src="{% static 'images/member3.jpg' %}" alt="Member 3">
-            <h4>Clara</h4>
+        <div class="team-card">
+            <h4>Yogesh Sadegaonkar</h4>
+            <p>Front-End Developer</p>
+        </div>
+        <div class="team-card">
+            <h4>Prajwal Pawar</h4>
             <p>Moderator</p>
         </div>
     </div>
 
-    <h3>Interactive Fun 🕹️</h3>
-    <p>Click the button below to see a random motivational message from our community:</p>
-    <button id="motivateBtn">Show Message</button>
-    <p id="message" style="font-weight:bold; margin-top:10px;"></p>
-</div>
-{% endblock %}
+    <h3 style="margin-top: 35px;">Motivation Corner 🕹️</h3>
+<p>Click the button below to receive a motivational message:</p>
 
-{% block extra_scripts %}
+<button id="motivateBtn">Show Message</button>
+
+<!-- MESSAGE WILL APPEAR RIGHT HERE -->
+<p id="message" style="font-weight:bold; margin-top:10px; min-height:20px;"></p>
+
 <script>
-const messages = [
-    "Keep learning, keep growing!",
-    "Your question might help someone else!",
-    "Every expert was once a beginner.",
-    "Share knowledge, gain wisdom.",
-    "Community is strength!"
-];
+document.addEventListener("DOMContentLoaded", () => {
 
-document.getElementById('motivateBtn').addEventListener('click', () => {
-    const randomIndex = Math.floor(Math.random() * messages.length);
-    document.getElementById('message').textContent = messages[randomIndex];
+    const messages = [
+        "Believe in your potential and keep moving forward.",
+        "Every small step contributes to your success.",
+        "Knowledge grows when shared—keep contributing!",
+        "Consistency is the foundation of mastery.",
+        "Your ideas can make a difference—share them!",
+        "Challenges help you grow—embrace them.",
+        "Stay curious. Stay inspired. Stay driven."
+    ];
+
+    const messageEl = document.getElementById("message");
+    const btn = document.getElementById("motivateBtn");
+
+    btn.addEventListener("click", () => {
+        const randomIndex = Math.floor(Math.random() * messages.length);
+        messageEl.textContent = messages[randomIndex];
+    });
+
 });
 </script>
+
+
+</div>
 {% endblock %}
