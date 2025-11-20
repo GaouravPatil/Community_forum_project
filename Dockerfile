@@ -35,7 +35,7 @@ ENV DJANGO_SETTINGS_MODULE=config.settings
 RUN python manage.py collectstatic --noinput
 
 # Expose port 8000 for the app
-EXPOSE 8000
+EXPOSE 8005
 
 # Start the service of daphne
-CMD ["sh", "-c", "service redis-server start && daphne -b 0.0.0.0 -p 8000 config.asgi:application"]
+CMD ["sh", "-c", "service redis-server start && daphne -b 0.0.0.0 -p 8005 config.asgi:application"]
