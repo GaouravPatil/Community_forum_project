@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Community Forum{% endblock %}</title>
+
     <style>
+        /* ===============================
+           GLOBAL PAGE STYLES
+           =============================== */
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -63,11 +68,6 @@
             transform: translateY(-2px);
         }
 
-        .user-info {
-            font-weight: 600;
-            color: #2d3748;
-        }
-
         main {
             flex: 1;
             max-width: 1400px;
@@ -88,7 +88,6 @@
         footer a {
             color: #667eea;
             text-decoration: none;
-            margin: 0 0.5rem;
         }
 
         footer a:hover {
@@ -105,47 +104,11 @@
                 flex-wrap: wrap;
                 justify-content: center;
             }
-
-            main {
-                padding: 0 1rem;
-            }
         }
-    </style>
-    {% block extra_css %}{% endblock %}
-</head>
-    <!-- 🔔 Notification Popup -->
-    <div id="popup-notifications" class="popup-notifications"></div>
 
-    <script>
-    async function fetchNotifications() {
-        try {
-            const response = await fetch("{% url 'notifications' %}", {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
-            });
-            const data = await response.json();
-            data.notifications.forEach(n => showNotification(n.message));
-        } catch (error) {
-            console.error("Error fetching notifications:", error);
-        }
-    }
-
-    function showNotification(message) {
-        const container = document.getElementById("popup-notifications");
-        const notif = document.createElement("div");
-        notif.className = "notification-popup";
-        notif.innerHTML = message;
-
-        container.appendChild(notif);
-        setTimeout(() => notif.classList.add("fade-out"), 4000);
-        setTimeout(() => notif.remove(), 4500);
-    }
-
-    // Poll every 15 seconds
-    setInterval(fetchNotifications, 15000);
-</script>
-
-    <style>
-        /* 🔔 Notification Popup Styles */
+        /* ===============================
+           NOTIFICATION POPUP
+           =============================== */
         .popup-notifications {
             position: fixed;
             top: 20px;
@@ -168,79 +131,167 @@
 
         @keyframes slide-in {
             from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            to   { transform: translateX(0);   opacity: 1; }
         }
 
-        .fade-out {
+        .fade-out { opacity: 0; }
+
+        /* ===============================
+           ANIMATION CLASSES
+           =============================== */
+
+        .animate {
             opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+
+        .animate.show {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
-</body>
-</html>
- 
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+
+
+<!-- Notification Container -->
+<div id="popup-notifications" class="popup-notifications"></div>
+
+
+
 <body>
-    <!-- 🌟 Navbar -->
-    <header>
-        <div class="header-content">
-            <h1>💬 Discussion Forum</h1>
-            {% comment %} <nav>
-                <a href="{% url 'index' %}">🏠 Home</a>
-                
-                <a href="{% url 'about' %}">About</a>
-                <a href="{% url 'profile' %}">👤 Profile</a>
-                <a href="{% url 'category_detail' category.id %}">
-                {% if user.is_authenticated %}
-                    <span class="user-info">Welcome, {{ user.username }}!</span>
-                    <a href="{% url 'notifications' %}" style="position: relative;">
-                        🔔 Notifications
-                        {% if unread_notifications > 0 %}
-                            <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
-                        {% endif %}
-                    </a>
-                    <a href="{% url 'logout' %}">🚪 Logout</a>
-                {% else %}
-                    <a href="{% url 'login' %}">🔐 Login</a>
-                    <a href="{% url 'register' %}">📝 Register</a>
-                {% endif %}
-            </nav> {% endcomment %}
 
-            <nav>
-    <a href="{% url 'index' %}">🏠 Home</a>
-    <a href="{% url 'about' %}">About</a>
-    <a href="{% url 'profile' %}">👤 Profile</a>
+<!-- ===============================
+     NAVBAR
+     =============================== -->
+<header>
+    <div class="header-content">
+        <h1>💬 Discussion Forum</h1>
 
-    {% if user.is_authenticated %}
-        <span class="user-info">Welcome, {{ user.username }}!</span>
-        <a href="{% url 'notifications' %}" style="position: relative;">
-            🔔 Notifications
-            {% if unread_notifications > 0 %}
-                <span style="position: absolute; top: -8px; right: -8px; background: #f56565; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem;">{{ unread_notifications }}</span>
+        <nav>
+            <a href="{% url 'index' %}">🏠 Home</a>
+            <a href="{% url 'about' %}">About</a>
+            <a href="{% url 'profile' %}">👤 Profile</a>
+
+            {% if user.is_authenticated %}
+                <span class="user-info">Welcome, {{ user.username }}!</span>
+
+                <a href="{% url 'notifications' %}" style="position: relative;">
+                    🔔 Notifications
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -8px; right: -8px; 
+                                     background: #f56565; color: white; border-radius: 50%; 
+                                     padding: 2px 6px; font-size: 0.8rem;">
+                            {{ unread_notifications }}
+                        </span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'logout' %}">🚪 Logout</a>
+
+            {% else %}
+                <a href="{% url 'login' %}">🔐 Login</a>
+                <a href="{% url 'register' %}">📝 Register</a>
             {% endif %}
-        </a>
-        <a href="{% url 'logout' %}">🚪 Logout</a>
-    {% else %}
-        <a href="{% url 'login' %}">🔐 Login</a>
-        <a href="{% url 'register' %}">📝 Register</a>
-    {% endif %}
-</nav>
+        </nav>
+    </div>
+</header>
 
-        </div>
-    </header>
 
-    <!-- 📄 Page Content -->
-    <main>
-        {% block content %}{% endblock %}
-    </main>
 
-    <!-- ⚓ Footer -->
-    <footer>
-        <p>© {{ now|date:"Y" }} Community Forum. All Rights Reserved. |
-           <a href="{% url 'about' %}">About</a>
-|
-           <a href="{% url 'contact' %}">Contact</a>
-        </p>
-    </footer>
+<!-- ===============================
+     MAIN CONTENT
+     =============================== -->
+<main>
+    {% block content %}{% endblock %}
+</main>
 
-    {% block extra_js %}{% endblock %}
+
+
+<!-- ===============================
+     FOOTER
+     =============================== -->
+<footer>
+    <p>
+        © {{ now|date:"Y" }} Community Forum.  
+        <a href="{% url 'about' %}">About</a> |
+        <a href="{% url 'contact' %}">Contact</a>
+    </p>
+</footer>
+
+
+
+<!-- ===============================
+     JAVASCRIPT
+     =============================== -->
+<script>
+/* ===============================
+   NOTIFICATION SYSTEM
+   =============================== */
+async function fetchNotifications() {
+    try {
+        const response = await fetch("{% url 'notifications' %}", {
+            headers: {"X-Requested-With": "XMLHttpRequest"}
+        });
+
+        const data = await response.json();
+        data.notifications.forEach(n => showNotification(n.message));
+
+    } catch (error) {
+        console.error("Error fetching notifications:", error);
+    }
+}
+
+function showNotification(message) {
+    const container = document.getElementById("popup-notifications");
+    const notif = document.createElement("div");
+
+    notif.className = "notification-popup";
+    notif.innerHTML = message;
+
+    container.appendChild(notif);
+
+    setTimeout(() => notif.classList.add("fade-out"), 4000);
+    setTimeout(() => notif.remove(), 4500);
+}
+
+setInterval(fetchNotifications, 15000);
+
+
+
+/* ===============================
+   SMOOTH SCROLL
+   =============================== */
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        const target = document.querySelector(this.getAttribute("href"));
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    });
+});
+
+
+
+/* ===============================
+   FADE + SLIDE ANIMATION
+   =============================== */
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add("show");
+        }
+    });
+});
+
+document.querySelectorAll(".animate").forEach(el => observer.observe(el));
+
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>
