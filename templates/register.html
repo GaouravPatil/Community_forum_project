@@ -86,6 +86,12 @@
     .form-group input.error {
         border-color: #f44336;
     }
+
+    .error {
+        color: #f44336;
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
     
     .form-text {
         font-size: 0.8rem;
@@ -202,61 +208,39 @@
             {% csrf_token %}
             
             <div class="form-group">
-                <label for="username">Username</label>
-                <input 
-                    type="text" 
-                    id="username" 
-                    name="username" 
-                    value="{{ username }}"
-                    required 
-                    minlength="3"
-                    maxlength="30"
-                    placeholder="Choose a username"
-                    autocomplete="username"
-                >
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
                 <div class="form-text">3-30 characters, letters, numbers, underscore only</div>
                 <div class="availability-check" id="usernameCheck"></div>
+                {% if form.username.errors %}
+                    <div class="error">{{ form.username.errors }}</div>
+                {% endif %}
             </div>
             
             <div class="form-group">
-                <label for="email">Email Address</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    value="{{ email }}"
-                    required 
-                    placeholder="Enter your email"
-                    autocomplete="email"
-                >
+                <label for="{{ form.email.id_for_label }}">Email Address</label>
+                {{ form.email }}
                 <div class="availability-check" id="emailCheck"></div>
+                {% if form.email.errors %}
+                    <div class="error">{{ form.email.errors }}</div>
+                {% endif %}
             </div>
             
             <div class="form-group">
-                <label for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    required 
-                    minlength="8"
-                    placeholder="At least 8 characters"
-                    autocomplete="new-password"
-                >
+                <label for="{{ form.password1.id_for_label }}">Password</label>
+                {{ form.password1 }}
                 <div class="form-text">Minimum 8 characters recommended</div>
+                {% if form.password1.errors %}
+                    <div class="error">{{ form.password1.errors }}</div>
+                {% endif %}
             </div>
             
             <div class="form-group">
-                <label for="password_confirm">Confirm Password</label>
-                <input 
-                    type="password" 
-                    id="password_confirm" 
-                    name="password_confirm" 
-                    required 
-                    minlength="8"
-                    placeholder="Confirm your password"
-                    autocomplete="new-password"
-                >
+                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                    <div class="error">{{ form.password2.errors }}</div>
+                {% endif %}
             </div>
             
             <button type="submit" class="btn-register" id="submitBtn">Create Account</button>
@@ -270,15 +254,15 @@
 
 <script>
     // Check username availability
-    document.getElementById('username').addEventListener('blur', async function() {
+    document.getElementById('id_username').addEventListener('blur', async function() {
         const username = this.value.trim();
         if (username.length < 3) return;
-        
+
         try {
             const response = await fetch(`/chat/api/check-username/?username=${encodeURIComponent(username)}`);
             const data = await response.json();
             const checkDiv = document.getElementById('usernameCheck');
-            
+
             if (data.available) {
                 checkDiv.className = 'availability-check available';
                 checkDiv.textContent = '✓ ' + data.message;
@@ -290,17 +274,17 @@
             console.error('Error checking username:', error);
         }
     });
-    
+
     // Check email availability
-    document.getElementById('email').addEventListener('blur', async function() {
+    document.getElementById('id_email').addEventListener('blur', async function() {
         const email = this.value.trim();
         if (!email.includes('@')) return;
-        
+
         try {
             const response = await fetch(`/chat/api/check-email/?email=${encodeURIComponent(email)}`);
             const data = await response.json();
             const checkDiv = document.getElementById('emailCheck');
-            
+
             if (data.available) {
                 checkDiv.className = 'availability-check available';
                 checkDiv.textContent = '✓ ' + data.message;
@@ -314,21 +298,19 @@
     });
     
     // Password confirmation validation
-    document.getElementById('password_confirm').addEventListener('input', function() {
-        const password = document.getElementById('password').value;
-        if (this.value !== password) {
+    const password1 = document.getElementById('id_password1');
+    const password2 = document.getElementById('id_password2');
+    password2.addEventListener('input', function() {
+        if (this.value !== password1.value) {
             this.classList.add('error');
         } else {
             this.classList.remove('error');
         }
     });
-    
+
     // Form submission
     document.getElementById('registerForm').addEventListener('submit', function(e) {
-        const password = document.getElementById('password').value;
-        const passwordConfirm = document.getElementById('password_confirm').value;
-        
-        if (password !== passwordConfirm) {
+        if (password1.value !== password2.value) {
             e.preventDefault();
             alert('Passwords do not match!');
             return false;

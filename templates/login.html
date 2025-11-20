@@ -419,7 +419,16 @@
                 <p>Login to continue to Community Forum</p>
             </div>
             
-            <form>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="POST" id="loginForm">
+                {% csrf_token %}
                 <div class="form-group">
                     <label for="username">Username</label>
                     <div class="input-wrapper">
@@ -429,6 +438,7 @@
                             name="username" 
                             required 
                             placeholder="Enter your username"
+                            value="{{ username }}"
                         >
                         <span class="input-icon">👤</span>
                     </div>
@@ -461,8 +471,8 @@
             </form>
             
             <div class="auth-footer">
-                <p>Don't have an account? <a href="#">Register here</a></p>
-                <p><a href="#">Forgot password?</a></p>
+                <p>Don't have an account? <a href="/chat/register/">Register here</a></p>
+                <p><a href="">Forgot password?</a></p>
             </div>
         </div>
     </div>
@@ -494,16 +504,10 @@
         // Button ripple effect
         const button = document.querySelector('.btn-login');
         button.addEventListener('click', function(e) {
-            e.preventDefault();
-            
             // Add loading state
             this.style.opacity = '0.8';
             this.textContent = 'Logging in...';
-            
-            setTimeout(() => {
-                this.style.opacity = '1';
-                this.textContent = 'Login';
-            }, 2000);
+            // Form will submit naturally
         });
     </script>
 </body>
