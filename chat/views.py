@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.contrib.contenttypes.models import ContentType
+
 import json
 
 from .models import (
@@ -337,3 +338,25 @@ def search(request):
         })
 
     return JsonResponse({'threads': threads_data})
+
+from django.views.decorators.http import require_GET
+
+@require_GET
+def search_json(request):
+    q = request.GET.get("q", "").strip()
+
+    results = []
+    if q:
+        qs = Thread.objects.filter(
+            Q(title__icontains=q) | Q(content__icontains=q)
+        )[:10]
+
+        for t in qs:
+            results.append({
+                "title": t.title,
+                "meta": t.author.username if t.author else "",
+                "url": f"/thread/{t.id}/",
+            })
+
+    return JsonResponse({"results": results})
+

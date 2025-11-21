@@ -203,6 +203,13 @@
                     </div>
                 {% endif %}
                 <h1 class="username">{{ user.username }}</h1>
+
+                {% if user_profile.is_online %}
+    <span style="color: green; font-weight: bold;">🟢 Online</span>
+{% else %}
+    <span style="color: gray; font-weight: bold;">⚪ Offline</span>
+{% endif %}
+
                 <p class="join-date">Member since {{ user_profile.join_date|date:"F Y" }}</p>
             </div>
 

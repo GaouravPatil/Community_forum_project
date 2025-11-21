@@ -1,17 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
+from datetime import timedelta
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    bio = models.TextField(blank=True, max_length=500)
-    location = models.CharField(max_length=100, blank=True)
-    join_date = models.DateTimeField(auto_now_add=True)
+    bio = models.TextField(blank=True)
+    
+    # NEW FIELD — Tracks user activity
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    def is_online(self):
+        return self.last_seen >= timezone.now() - timedelta(minutes=2)
 
     def __str__(self):
-        return f"{self.user.username}'s profile"
+        return self.user.username
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)

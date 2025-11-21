@@ -22,7 +22,7 @@ class ReplyForm(forms.ModelForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['avatar', 'bio', 'location']
+        fields = ['avatar', 'bio']
         widgets = {
             'bio': forms.Textarea(attrs={'placeholder': 'Tell us about yourself...', 'rows': 4}),
             'location': forms.TextInput(attrs={'placeholder': 'Your location'}),
