@@ -6,6 +6,31 @@
     <title>{% block title %}Community Forum{% endblock %}</title>
 
     <style>
+
+.floating-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    color: white;
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    transition: 0.3s ease;
+    z-index: 999;
+}
+
+.floating-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -305,6 +330,8 @@
         });
     });
     </script>
+
+    <a href="{% url 'create_thread' %}" class="floating-btn">+</a>
 
 </body>
 </html>
