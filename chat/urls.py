@@ -14,6 +14,10 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     path('category/<int:pk>/', views.category_detail, name='category_detail'),
+    path('create-thread-page/', views.create_thread_page, name='create_thread_page'),
+
+    
+
 
 
     

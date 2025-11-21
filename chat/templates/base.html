@@ -331,7 +331,65 @@
     });
     </script>
 
-    <a href="{% url 'create_thread' %}" class="floating-btn">+</a>
+    <a href="{% url 'create_thread_page' %}" class="create-thread-btn">+</a>
+
+
 
 </body>
 </html>
+
+<style>
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: 0.5s;
+    z-index: 9999;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success { background: #28a745; }
+.toast.error { background: #dc3545; }
+.toast.warning { background: #ffc107; color:#000; }
+.toast.info { background: #17a2b8; }
+</style>
+
+<div id="toastBox"></div>
+
+<script>
+function showToast(message, type="info") {
+    let box = document.getElementById("toastBox");
+    let toast = document.createElement("div");
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    box.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("show");
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
+</script>
+
+{% if messages %}
+<script>
+{% for message in messages %}
+    showToast("{{ message }}", "{{ message.tags }}");
+{% endfor %}
+</script>
+{% endif %}
+

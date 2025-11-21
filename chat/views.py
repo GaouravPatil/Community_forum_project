@@ -108,6 +108,25 @@ def create_thread(request):
     return JsonResponse({'error': 'Invalid form'}, status=400)
 
 
+@login_required
+def create_thread_page(request):
+    if request.method == 'POST':
+        form = ThreadForm(request.POST)
+        if form.is_valid():
+            thread = form.save(commit=False)
+            thread.author = request.user
+            thread.save()
+            
+            messages.success(request, "Thread created successfully!")
+            return redirect('index')
+        else:
+            messages.error(request, "Something went wrong. Try again.")
+    else:
+        form = ThreadForm()
+
+    return render(request, 'create_thread.html', {'form': form})
+
+
 @csrf_exempt
 @login_required
 @require_http_methods(["POST"])
